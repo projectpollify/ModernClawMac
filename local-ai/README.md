@@ -27,7 +27,7 @@ It is a local-first single-workspace app built around durable Markdown memory fi
 ## Development
 
 ```powershell
-cd "C:\Users\pento\Desktop\ModernClawBase\local-ai"
+cd "C:\path\to\ModernClaw\local-ai"
 npm install
 npm run tauri:dev
 ```

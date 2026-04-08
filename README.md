@@ -1,6 +1,6 @@
-# ModernClawBase
+# ModernClaw
 
-ModernClawBase is a free, open-source, local-first desktop workspace for building and using durable AI context on your own machine.
+ModernClaw is a free, open-source, local-first desktop workspace for building and using durable AI context on your own machine.
 
 The product is intentionally focused:
 
@@ -26,7 +26,7 @@ The product is intentionally focused:
 
 ## Product Shape
 
-ModernClawBase is meant to be useful on its own.
+ModernClaw is meant to be useful on its own.
 
 It keeps the core ModernClaw identity:
 
@@ -88,7 +88,7 @@ For voice features you also need:
 ## Development
 
 ```powershell
-cd "C:\Users\pento\Desktop\ModernClawBase\local-ai"
+cd "C:\path\to\ModernClaw\local-ai"
 npm install
 npm run tauri:dev
 ```
@@ -96,7 +96,7 @@ npm run tauri:dev
 ## Build Commands
 
 ```powershell
-cd "C:\Users\pento\Desktop\ModernClawBase\local-ai"
+cd "C:\path\to\ModernClaw\local-ai"
 npm run build
 npm run tauri:build
 ```
@@ -111,7 +111,7 @@ npm run tauri:build
 
 ## Direction
 
-The current priority is to keep ModernClawBase simple, stable, and trustworthy.
+The current priority is to keep ModernClaw simple, stable, and trustworthy.
 
 That means:
 
