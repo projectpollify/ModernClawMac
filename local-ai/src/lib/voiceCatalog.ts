@@ -23,8 +23,24 @@ export const CURATED_PIPER_VOICES: CuratedVoiceOption[] = [
 export const DEFAULT_PIPER_VOICE_ID = 'amy-medium';
 export const DEFAULT_WHISPER_MODEL_FILENAME = 'ggml-base.en.bin';
 export const DEFAULT_FLOOR_MODEL = 'gemma4:e4b';
+export const LIGHTWEIGHT_FLOOR_MODEL = 'gemma4:e2b';
 export const LEGACY_FLOOR_MODEL = 'nchapman/dolphin3.0-qwen2.5:3b';
 export const LEGACY_FALLBACK_MODEL = 'dolphin3:8b';
+
+export const CURATED_FLOOR_MODELS = [
+  {
+    name: DEFAULT_FLOOR_MODEL,
+    size: '9.6GB',
+    description: 'Primary Gemma 4 setup for ModernClaw. Use this lane for the strongest supported local workspace experience.',
+    recommended: true,
+  },
+  {
+    name: LIGHTWEIGHT_FLOOR_MODEL,
+    size: '7.2GB',
+    description: 'Smaller Gemma 4 lane for lighter local setups when you want lower resource use with the same supported family.',
+    recommended: false,
+  },
+] as const;
 
 export function getCuratedVoiceById(id: string) {
   return CURATED_PIPER_VOICES.find((voice) => voice.id === id) ?? CURATED_PIPER_VOICES[0];

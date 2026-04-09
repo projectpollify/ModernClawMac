@@ -15,7 +15,8 @@ use commands::chat::{
 };
 use commands::history::{
     conversation_create, conversation_delete, conversation_get, conversation_list,
-    conversation_search, conversation_update, message_create, messages_get,
+    conversation_search, conversation_update, message_create, message_feedback_summary,
+    message_set_feedback, messages_get,
 };
 use commands::memory::{
     memory_append_log, memory_get_base_path, memory_get_today_log, memory_import_curator_package,
@@ -122,6 +123,8 @@ pub fn run() {
             conversation_delete,
             conversation_search,
             message_create,
+            message_feedback_summary,
+            message_set_feedback,
             messages_get,
             memory_initialize,
             memory_read_file,

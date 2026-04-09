@@ -112,6 +112,7 @@ Important current limitation:
 - Brain data loads from the current local workspace managed by the app.
 - Curator staged packages are read from `curator/staged/` under the active workspace path.
 - Packages added outside the app appear in the Curator Inbox after refresh.
+- The external Cowork automation setup is documented in [COWORK_CURATOR_AUTOMATION_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/COWORK_CURATOR_AUTOMATION_SPEC.md) so it can be rebuilt if the scheduled task is lost.
 
 ### Active Workspace Path Matters
 
@@ -127,6 +128,7 @@ Practical rule for automation:
 - do not assume the top-level `LocalAI\curator\` folders are the live app inbox
 - if the active brain is `joe`, the live Curator folders are under `%APPDATA%\LocalAI\agents\joe\curator\`
 - if the active brain changes, the automation should follow that workspace automatically
+- the automation also needs access to `%APPDATA%\com.localai.app\data.db` so it can resolve the active workspace from the live database
 
 ## Local Data Location
 

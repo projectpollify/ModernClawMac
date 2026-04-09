@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { MessageContent } from './MessageContent';
 import type { Message } from '@/types';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useChatStore } from '@/stores/chatStore';
 import { useVoiceStore } from '@/stores/voiceStore';
 
 interface MessageBubbleProps {
@@ -11,6 +12,8 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+  const isAssistant = message.role === 'assistant';
+  const setMessageFeedback = useChatStore((state) => state.setMessageFeedback);
   const { showTokenCount, enableVoiceOutput } = useSettingsStore((state) => state.settings);
   const { speakMessage, isSpeaking, isPaused, speakingMessageId } = useVoiceStore();
   const tokenCount = estimateTokens(message.content);
@@ -48,7 +51,39 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             {formatTime(message.createdAt)}
             {showTokenCount ? ` | ~${tokenCount} tokens` : ''}
           </span>
-          {!isUser && enableVoiceOutput ? (
+          {isAssistant ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Mark response helpful"
+                title="Helpful"
+                onClick={() => void setMessageFeedback(message.id, message.feedback === 'up' ? undefined : 'up')}
+                className={cn(
+                  'rounded-md px-1.5 py-1 transition-colors',
+                  message.feedback === 'up'
+                    ? 'bg-emerald-500/15 text-emerald-700'
+                    : 'hover:bg-background/50'
+                )}
+              >
+                <ThumbUpIcon className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Mark response not useful"
+                title="Not useful"
+                onClick={() => void setMessageFeedback(message.id, message.feedback === 'down' ? undefined : 'down')}
+                className={cn(
+                  'rounded-md px-1.5 py-1 transition-colors',
+                  message.feedback === 'down'
+                    ? 'bg-rose-500/15 text-rose-700'
+                    : 'hover:bg-background/50'
+                )}
+              >
+                <ThumbDownIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
+          {isAssistant && enableVoiceOutput ? (
             <Button
               size="sm"
               variant="ghost"
@@ -77,4 +112,30 @@ function formatTime(date: Date | string): string {
 
 function estimateTokens(content: string) {
   return Math.max(1, Math.ceil(content.length / 4));
+}
+
+function ThumbUpIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M14 9V5a3 3 0 00-3-3l-1 4-3 4v10h11.28a2 2 0 001.96-1.61l1.39-7A2 2 0 0019.67 9H14zM7 22H4a1 1 0 01-1-1v-9a1 1 0 011-1h3"
+      />
+    </svg>
+  );
+}
+
+function ThumbDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M10 15v4a3 3 0 003 3l1-4 3-4V4H5.72a2 2 0 00-1.96 1.61l-1.39 7A2 2 0 004.33 15H10zm7-13h3a1 1 0 011 1v9a1 1 0 01-1 1h-3"
+      />
+    </svg>
+  );
 }

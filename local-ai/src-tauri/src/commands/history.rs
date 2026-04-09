@@ -4,7 +4,7 @@ use tauri::State;
 
 use crate::services::agent_repo::AgentRepository;
 use crate::services::{conversation_repo::ConversationRepository, message_repo::MessageRepository};
-use crate::types::{Conversation, Message};
+use crate::types::{Conversation, Message, MessageFeedbackSummary};
 use crate::DatabaseState;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,6 +15,7 @@ pub struct MessageDto {
     pub role: String,
     pub content: String,
     pub tokens_used: Option<i32>,
+    pub feedback: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -26,6 +27,7 @@ impl From<MessageDto> for Message {
             role: value.role,
             content: value.content,
             tokens_used: value.tokens_used,
+            feedback: value.feedback,
             created_at: value.created_at,
         }
     }
@@ -39,6 +41,7 @@ impl From<Message> for MessageDto {
             role: value.role,
             content: value.content,
             tokens_used: value.tokens_used,
+            feedback: value.feedback,
             created_at: value.created_at,
         }
     }
@@ -177,4 +180,31 @@ pub async fn messages_get(
         .into_iter()
         .map(Into::into)
         .collect())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn message_set_feedback(
+    state: State<'_, DatabaseState>,
+    messageId: String,
+    feedback: Option<String>,
+) -> Result<(), String> {
+    if let Some(value) = feedback.as_deref() {
+        if value != "up" && value != "down" {
+            return Err("Unsupported feedback value".into());
+        }
+    }
+
+    let repo = MessageRepository::new(&state.db);
+    repo.update_feedback(&messageId, feedback.as_deref())
+}
+
+#[tauri::command]
+pub async fn message_feedback_summary(
+    state: State<'_, DatabaseState>,
+) -> Result<MessageFeedbackSummary, String> {
+    let agent_repo = AgentRepository::new(&state.db);
+    let active_agent_id = agent_repo.get_active_agent_id()?;
+    let repo = MessageRepository::new(&state.db);
+    repo.feedback_summary_for_agent(&active_agent_id)
 }

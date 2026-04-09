@@ -104,7 +104,17 @@ pub struct Message {
     pub role: String,
     pub content: String,
     pub tokens_used: Option<i32>,
+    pub feedback: Option<String>,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageFeedbackSummary {
+    pub assistant_message_count: i32,
+    pub rated_count: i32,
+    pub helpful_count: i32,
+    pub not_useful_count: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

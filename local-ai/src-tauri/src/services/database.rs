@@ -60,6 +60,11 @@ impl Database {
                 .map_err(|error| format!("Migration 003 failed: {}", error))?;
         }
 
+        if current_version < 4 {
+            conn.execute_batch(include_str!("../migrations/004_message_feedback.sql"))
+                .map_err(|error| format!("Migration 004 failed: {}", error))?;
+        }
+
         Ok(())
     }
 

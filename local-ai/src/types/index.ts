@@ -34,6 +34,14 @@ export interface Message {
   createdAt: Date;
   conversationId: string;
   tokensUsed?: number;
+  feedback?: 'up' | 'down';
+}
+
+export interface MessageFeedbackSummary {
+  assistantMessageCount: number;
+  ratedCount: number;
+  helpfulCount: number;
+  notUsefulCount: number;
 }
 
 export interface Conversation {

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ModelCard } from '@/components/models/ModelCard';
 import { ModelDownloader } from '@/components/models/ModelDownloader';
-import { CURATED_PIPER_VOICES, DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
+import { CURATED_FLOOR_MODELS, CURATED_PIPER_VOICES, DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { getEffectiveVoiceSettings } from '@/lib/voiceSettings';
 import { getDefaultVoicePaths } from '@/lib/voicePaths';
 import { cn } from '@/lib/utils';
@@ -13,8 +13,9 @@ import { useModelStore } from '@/stores/modelStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useVoiceStore } from '@/stores/voiceStore';
+import { historyApi } from '@/services/history';
 import { memoryApi } from '@/services/memory';
-import type { AgentVoiceSettings, Theme } from '@/types';
+import type { AgentVoiceSettings, MessageFeedbackSummary, Theme } from '@/types';
 
 const CONTEXT_WINDOW_OPTIONS = [2048, 4096, 8192, 16384, 32768];
 const WHISPER_LANGUAGE_OPTIONS = [
@@ -53,12 +54,35 @@ export function SettingsView() {
   const checkInputStatus = useVoiceStore((state) => state.checkInputStatus);
   const speakMessage = useVoiceStore((state) => state.speakMessage);
   const clearVoiceError = useVoiceStore((state) => state.clearError);
+  const [feedbackSummary, setFeedbackSummary] = useState<MessageFeedbackSummary | null>(null);
+  const [isLoadingFeedbackSummary, setIsLoadingFeedbackSummary] = useState(false);
+
+  const loadFeedbackSummary = async () => {
+    if (!settings.saveConversationHistory) {
+      setFeedbackSummary(null);
+      return;
+    }
+
+    setIsLoadingFeedbackSummary(true);
+    try {
+      const summary = await historyApi.getMessageFeedbackSummary();
+      setFeedbackSummary(summary);
+    } catch {
+      setFeedbackSummary(null);
+    } finally {
+      setIsLoadingFeedbackSummary(false);
+    }
+  };
 
   useEffect(() => {
     if (!ollamaStatus) {
       void refreshModels();
     }
   }, [ollamaStatus, refreshModels]);
+
+  useEffect(() => {
+    void loadFeedbackSummary();
+  }, [settings.saveConversationHistory]);
 
   const effectiveVoiceSettings = useMemo(
     () => getEffectiveVoiceSettings(settings, activeAgent),
@@ -102,14 +126,12 @@ export function SettingsView() {
 
   const modelOptions = useMemo(() => {
     const installedNames = new Set(models.map((model) => model.name));
-    const preferred = [
-      {
-        name: DEFAULT_FLOOR_MODEL,
-        label: installedNames.has(DEFAULT_FLOOR_MODEL)
-          ? `${DEFAULT_FLOOR_MODEL} (primary lane, installed)`
-          : `${DEFAULT_FLOOR_MODEL} (primary lane)`,
-      },
-    ];
+    const preferred = CURATED_FLOOR_MODELS.map((model) => ({
+      name: model.name,
+      label: installedNames.has(model.name)
+        ? `${model.name} (${model.recommended ? 'primary lane' : 'lighter lane'}, installed)`
+        : `${model.name} (${model.recommended ? 'primary lane' : 'lighter lane'})`,
+    }));
     const seen = new Set<string>();
 
     return [...preferred, ...models.map((model) => ({ name: model.name, label: model.name }))].filter((option) => {
@@ -520,6 +542,13 @@ export function SettingsView() {
           </div>
 
           <aside className="space-y-6">
+            <FeedbackSummaryCard
+              summary={feedbackSummary}
+              isLoading={isLoadingFeedbackSummary}
+              historyEnabled={settings.saveConversationHistory}
+              onRefresh={() => void loadFeedbackSummary()}
+            />
+
             <section className="rounded-[30px] border border-border bg-background/75 p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -671,5 +700,92 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (value: boo
         )}
       />
     </button>
+  );
+}
+
+function FeedbackSummaryCard({
+  summary,
+  isLoading,
+  historyEnabled,
+  onRefresh,
+}: {
+  summary: MessageFeedbackSummary | null;
+  isLoading: boolean;
+  historyEnabled: boolean;
+  onRefresh: () => void;
+}) {
+  const ratedCount = summary?.ratedCount ?? 0;
+  const helpfulCount = summary?.helpfulCount ?? 0;
+  const notUsefulCount = summary?.notUsefulCount ?? 0;
+  const assistantMessageCount = summary?.assistantMessageCount ?? 0;
+  const helpfulRate = ratedCount > 0 ? Math.round((helpfulCount / ratedCount) * 100) : null;
+
+  return (
+    <section className="rounded-[30px] border border-border bg-background/75 p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Response Feedback</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Track whether assistant replies are matching what users actually wanted.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading || !historyEnabled}>
+          {isLoading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+
+      {!historyEnabled ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+          Enable conversation history to save and summarize thumbs up/down feedback.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MetricTile label="Helpful" value={helpfulCount.toLocaleString()} tone="up" />
+            <MetricTile label="Not Useful" value={notUsefulCount.toLocaleString()} tone="down" />
+            <MetricTile label="Rated Replies" value={ratedCount.toLocaleString()} />
+            <MetricTile label="All Assistant Replies" value={assistantMessageCount.toLocaleString()} />
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background/70 p-4 text-sm">
+            {helpfulRate === null ? (
+              <p className="text-muted-foreground">
+                No response feedback has been recorded yet. Once users start rating replies, this workspace will show how often the assistant is landing well.
+              </p>
+            ) : (
+              <p>
+                Current helpful rate: <span className="font-semibold">{helpfulRate}%</span> of rated assistant replies.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: 'up' | 'down';
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border p-4',
+        tone === 'up'
+          ? 'border-emerald-500/20 bg-emerald-500/10'
+          : tone === 'down'
+            ? 'border-rose-500/20 bg-rose-500/10'
+            : 'border-border bg-background/70'
+      )}
+    >
+      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
+    </div>
   );
 }

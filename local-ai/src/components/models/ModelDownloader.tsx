@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
+import { CURATED_FLOOR_MODELS } from '@/lib/voiceCatalog';
 import { cn } from '@/lib/utils';
 import { useModelStore } from '@/stores/modelStore';
-
-const POPULAR_MODELS = [
-  { name: DEFAULT_FLOOR_MODEL, size: '9.6GB', desc: 'Primary ModernClaw model. Stronger quality lane for the base local workspace experience.' },
-];
 
 export function ModelDownloader() {
   const [customModel, setCustomModel] = useState('');
@@ -19,11 +15,11 @@ export function ModelDownloader() {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted-foreground">
-        ModernClaw is currently tuned around one primary Gemma 4 lane. Keep the setup focused there for the most predictable local experience, and only pull custom models if you are intentionally testing beyond the supported path.
+        ModernClaw is currently tuned around the Gemma 4 family. Start with the primary lane for the strongest local quality, or use the lighter 2B sibling when you want a smaller supported option on the same track.
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {POPULAR_MODELS.map((model) => (
+        {CURATED_FLOOR_MODELS.map((model) => (
           <button
             key={model.name}
             onClick={() => handleDownload(model.name)}
@@ -33,7 +29,7 @@ export function ModelDownloader() {
               'hover:bg-accent hover:text-accent-foreground',
               'disabled:cursor-not-allowed disabled:opacity-50'
             )}
-            title={model.desc}
+            title={model.description}
           >
             <span className="font-medium">{model.name}</span>
             <span className="ml-2 text-muted-foreground">{model.size}</span>

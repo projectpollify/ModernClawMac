@@ -17,6 +17,7 @@ interface ChatState {
   streamingContent: string;
   error: string | null;
   sendMessage: (content: string) => Promise<void>;
+  setMessageFeedback: (messageId: string, feedback?: 'up' | 'down') => Promise<void>;
   setModel: (model: string) => void;
   newConversation: (conversationId: string) => void;
   loadConversation: (id: string, messages?: Message[]) => void;
@@ -211,6 +212,52 @@ export const useChatStore = create<ChatState>()((set, get) => ({
           error: String(error),
         });
       }
+    }
+  },
+
+  setMessageFeedback: async (messageId: string, feedback) => {
+    const updateMessages = (items: Message[]) =>
+      items.map((message) => (message.id === messageId ? { ...message, feedback } : message));
+
+    const { currentConversationId } = get();
+    const conversationId = Object.entries(get().messagesByConversation).find(([, items]) =>
+      items.some((message) => message.id === messageId)
+    )?.[0];
+
+    if (!conversationId) {
+      return;
+    }
+
+    const previousMessages = get().messagesByConversation[conversationId] ?? [];
+    const nextConversationMessages = updateMessages(previousMessages);
+
+    set((state) => ({
+      messagesByConversation: {
+        ...state.messagesByConversation,
+        [conversationId]: nextConversationMessages,
+      },
+      ...(state.currentConversationId === conversationId
+        ? {
+            messages: updateMessages(state.messages),
+          }
+        : {}),
+    }));
+
+    try {
+      await historyApi.setMessageFeedback(messageId, feedback);
+    } catch (error) {
+      set((state) => ({
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversationId]: previousMessages,
+        },
+        ...(currentConversationId === conversationId
+          ? {
+              messages: previousMessages,
+              error: `Unable to save feedback. (${String(error)})`,
+            }
+          : {}),
+      }));
     }
   },
 

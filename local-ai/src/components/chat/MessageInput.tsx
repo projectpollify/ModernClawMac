@@ -5,6 +5,9 @@ import { useChatStore } from '@/stores/chatStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useVoiceStore } from '@/stores/voiceStore';
 
+const MESSAGE_CHARACTER_LIMIT = 2000;
+const CHARACTER_WARNING_THRESHOLD = 250;
+
 export function MessageInput() {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -152,15 +155,24 @@ export function MessageInput() {
   };
 
   const canUseVoiceInput = settings.enableVoiceInput;
+  const remainingCharacters = MESSAGE_CHARACTER_LIMIT - input.length;
 
   return (
-    <div className="mx-auto flex max-w-3xl items-end gap-2">
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-2 flex items-center justify-between px-1 text-xs text-muted-foreground">
+        <span>Use up to {MESSAGE_CHARACTER_LIMIT.toLocaleString()} characters to describe what you want.</span>
+        <span className={cn(remainingCharacters <= CHARACTER_WARNING_THRESHOLD ? 'text-amber-600' : '')}>
+          {remainingCharacters.toLocaleString()} left
+        </span>
+      </div>
+      <div className="flex items-end gap-2">
       <div className="relative flex-1">
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={handleKeyDown}
+          maxLength={MESSAGE_CHARACTER_LIMIT}
           placeholder={canUseVoiceInput ? 'Type a message or record with the mic...' : 'Type a message...'}
           disabled={isLoading || isTranscribing}
           rows={1}
@@ -172,9 +184,9 @@ export function MessageInput() {
           )}
         />
 
-        {input.length > 500 && (
+        {input.length > 0 && (
           <span className="absolute bottom-1 right-14 text-xs text-muted-foreground">
-            {input.length}
+            {input.length}/{MESSAGE_CHARACTER_LIMIT}
           </span>
         )}
       </div>
@@ -204,9 +216,10 @@ export function MessageInput() {
           'rounded-xl bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/90',
           'disabled:cursor-not-allowed disabled:opacity-50'
         )}
-      >
-        <SendIcon className="h-5 w-5" />
-      </button>
+        >
+          <SendIcon className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }

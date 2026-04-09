@@ -1,5 +1,5 @@
 use crate::services::database::Database;
-use crate::types::Message;
+use crate::types::{Message, MessageFeedbackSummary};
 use chrono::{DateTime, Utc};
 
 pub struct MessageRepository<'a> {
@@ -14,8 +14,8 @@ impl<'a> MessageRepository<'a> {
     pub fn create(&self, message: &Message) -> Result<(), String> {
         self.db.execute(
             r#"
-            INSERT INTO messages (id, conversation_id, role, content, tokens_used, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            INSERT INTO messages (id, conversation_id, role, content, tokens_used, feedback, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
             "#,
             &[
                 &message.id,
@@ -23,6 +23,7 @@ impl<'a> MessageRepository<'a> {
                 &message.role,
                 &message.content,
                 &message.tokens_used,
+                &message.feedback,
                 &message.created_at.to_rfc3339(),
             ],
         )?;
@@ -33,7 +34,7 @@ impl<'a> MessageRepository<'a> {
     pub fn get_for_conversation(&self, conversation_id: &str) -> Result<Vec<Message>, String> {
         self.db.query_all(
             r#"
-            SELECT id, conversation_id, role, content, tokens_used, created_at
+            SELECT id, conversation_id, role, content, tokens_used, feedback, created_at
             FROM messages
             WHERE conversation_id = ?1
             ORDER BY created_at ASC
@@ -46,10 +47,52 @@ impl<'a> MessageRepository<'a> {
                     role: row.get(2)?,
                     content: row.get(3)?,
                     tokens_used: row.get(4)?,
-                    created_at: parse_rfc3339(row.get(5)?)?,
+                    feedback: row.get(5)?,
+                    created_at: parse_rfc3339(row.get(6)?)?,
                 })
             },
         )
+    }
+
+    pub fn update_feedback(&self, id: &str, feedback: Option<&str>) -> Result<(), String> {
+        self.db.execute(
+            "UPDATE messages SET feedback = ?2 WHERE id = ?1",
+            &[&id, &feedback],
+        )?;
+        Ok(())
+    }
+
+    pub fn feedback_summary_for_agent(&self, agent_id: &str) -> Result<MessageFeedbackSummary, String> {
+        self.db
+            .query_one(
+                r#"
+                SELECT
+                    COUNT(CASE WHEN m.role = 'assistant' THEN 1 END) AS assistant_message_count,
+                    COUNT(CASE WHEN m.role = 'assistant' AND m.feedback IS NOT NULL THEN 1 END) AS rated_count,
+                    COUNT(CASE WHEN m.role = 'assistant' AND m.feedback = 'up' THEN 1 END) AS helpful_count,
+                    COUNT(CASE WHEN m.role = 'assistant' AND m.feedback = 'down' THEN 1 END) AS not_useful_count
+                FROM messages m
+                INNER JOIN conversations c ON c.id = m.conversation_id
+                WHERE c.agent_id = ?1
+                "#,
+                &[&agent_id],
+                |row| {
+                    Ok(MessageFeedbackSummary {
+                        assistant_message_count: row.get(0)?,
+                        rated_count: row.get(1)?,
+                        helpful_count: row.get(2)?,
+                        not_useful_count: row.get(3)?,
+                    })
+                },
+            )
+            .map(|summary| {
+                summary.unwrap_or(MessageFeedbackSummary {
+                    assistant_message_count: 0,
+                    rated_count: 0,
+                    helpful_count: 0,
+                    not_useful_count: 0,
+                })
+            })
     }
 
     pub fn delete(&self, id: &str) -> Result<(), String> {

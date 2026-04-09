@@ -42,6 +42,9 @@ It keeps the core ModernClaw identity:
 - `KNOWLEDGE_PACK_MODERNCLAW/`: reference knowledge-pack folder
 - `MODERNCLAW_BASE_SPLIT_PLAN.md`: product scope and repo discipline document
 - `RUNBOOK.md`: bring-up and verification notes
+- `COWORK_CURATOR_AUTOMATION_SPEC.md`: rebuild guide for the external Curator automation
+- `COWORK_CURATOR_TASK_PROMPT.md`: copyable prompt for recreating the Curator scheduled task
+- `CURATOR_INTAKE_INTERPRETER_SPEC.md`: one-box intake model for Curator
 - `SUGGESTION_SYSTEM_SPEC.md`: Brain suggestion workflow spec
 
 ## Technology Stack

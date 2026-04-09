@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Conversation, Message } from '@/types';
+import type { Conversation, Message, MessageFeedbackSummary } from '@/types';
 
 function toConversationDto(conversation: Conversation) {
   return {
@@ -34,6 +34,7 @@ function toMessageDto(message: Message) {
     role: message.role,
     content: message.content,
     tokensUsed: message.tokensUsed,
+    feedback: message.feedback,
     createdAt: message.createdAt,
   };
 }
@@ -45,6 +46,7 @@ function fromMessageDto(dto: any): Message {
     role: dto.role,
     content: dto.content,
     tokensUsed: dto.tokensUsed ?? undefined,
+    feedback: dto.feedback ?? undefined,
     createdAt: new Date(dto.createdAt),
   };
 }
@@ -98,5 +100,16 @@ export const historyApi = {
       conversationId,
     });
     return messages.map(fromMessageDto);
+  },
+
+  async setMessageFeedback(messageId: string, feedback?: 'up' | 'down'): Promise<void> {
+    return invoke('message_set_feedback', {
+      messageId,
+      feedback: feedback ?? null,
+    });
+  },
+
+  async getMessageFeedbackSummary(): Promise<MessageFeedbackSummary> {
+    return invoke<MessageFeedbackSummary>('message_feedback_summary');
   },
 };

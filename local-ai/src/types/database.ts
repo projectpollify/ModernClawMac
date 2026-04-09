@@ -14,6 +14,7 @@ export interface DbMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   tokens_used: number | null;
+  feedback: 'up' | 'down' | null;
   created_at: string;
 }
 

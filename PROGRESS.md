@@ -13,6 +13,7 @@ The repo already presents as a focused single-workspace product, but the finishe
 - flattened the Brain suggestion store to one workspace
 - completed the latest manual `tauri:dev` QA phase across the current product surface
 - validated the Curator request-to-stage-to-import loop end to end
+- documented the external Cowork Curator automation setup so the scheduled task can be rebuilt from the repo
 - rewrote visible product copy around `workspace` instead of role-management language
 - updated root docs to the ModernClawBase identity
 - removed stale planning and summary docs that no longer matched the product
