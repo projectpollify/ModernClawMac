@@ -67,6 +67,12 @@ Runtime workspace files live under the LocalAI app-data root and include:
 - `curator/`
 - `tools/`
 
+Important current detail:
+
+- the app resolves memory, knowledge, and curator folders from the active workspace path
+- when agent workspaces are present, the live Curator inbox and knowledge import flow may resolve under `LocalAI/agents/<active-agent>/` rather than the top-level `LocalAI/` root
+- external automation that prepares curator packages must target the active workspace, not assume `LocalAI/curator/` is always the live inbox
+
 The backend still keeps a compatibility-friendly internal structure, but the live product presents a single local workspace.
 
 ## Requirements

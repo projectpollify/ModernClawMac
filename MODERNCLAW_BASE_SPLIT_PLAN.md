@@ -11,6 +11,10 @@ It exists to keep the repo disciplined around one clear goal:
 - one clean model lane
 - one trustworthy open-core product
 
+This split is still in progress.
+
+The current shipped app may still contain features that belong to the fuller multi product while the base edition is being finished and cleaned up.
+
 ## Product Definition
 
 ModernClawBase is:
@@ -52,7 +56,13 @@ The base app should preserve the core ModernClaw identity:
 - editable `MEMORY.md`
 - daily logs
 - flat `knowledge/*.md` ingestion
-- curator staging only if it remains useful and understandable
+
+Curator note:
+Curator may remain in the shipped app during the transition, but it is not required to define the finished `ModernClawBase` product.
+
+If curator is kept, it must stay simple and understandable.
+
+If curator is moved out of base, it should be completed as part of the fuller multi product once the base edition is ready.
 
 ### Model Layer
 - Ollama integration
@@ -102,6 +112,8 @@ The app should present one durable local workspace.
 
 Internal compatibility layers are acceptable if they help future migration, but the user-facing product should stay simple.
 
+During the split, the repo may still carry compatibility layers or fuller-product features while the base shape is being finished.
+
 ### Settings Model
 The base app should keep one understandable settings story:
 - one saved workspace model preference
@@ -119,12 +131,15 @@ Preferred documentation:
 
 Avoid carrying stale planning packs or overlapping status docs.
 
+Until the split is complete, docs should prefer being explicit about transition state over pretending the base cleanup is already finished.
+
 ## Immediate Priorities
 
 1. Keep the live product aligned with the single-workspace scope.
 2. Remove wording that suggests extra product layers the app no longer exposes.
-3. Preserve local-first trust and usability.
-4. Improve polish only when it supports the core base product.
+3. Clarify which current features are transitional versus part of the finished base product.
+4. Preserve local-first trust and usability.
+5. Improve polish only when it supports the core base product.
 
 ## Guiding Principle
 
