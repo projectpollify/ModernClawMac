@@ -6,8 +6,8 @@ export function EmptyState() {
       </div>
       <h2 className="mb-2 text-xl font-semibold">ModernClaw is ready for a first conversation</h2>
       <p className="max-w-md text-muted-foreground">
-        Send a message or drop in an image to start chatting with your local workspace. Saved conversations will
-        reappear here automatically.
+        Send a message, drop in an image or audio note, or record with the mic to start chatting with your local
+        workspace. Saved conversations will reappear here automatically.
       </p>
     </div>
   );

@@ -62,6 +62,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               ))}
           </div>
         ) : null}
+        {message.attachments?.some((attachment) => attachment.kind === 'audio') ? (
+          <div className="mb-3 space-y-2">
+            {message.attachments
+              .filter((attachment) => attachment.kind === 'audio')
+              .map((attachment) => (
+                <div key={attachment.id} className="rounded-xl border border-black/10 bg-black/5 p-3">
+                  <p className="mb-2 text-xs font-medium opacity-75">{attachment.name}</p>
+                  <audio controls preload="metadata" className="w-full" src={convertFileSrc(attachment.path)} />
+                </div>
+              ))}
+          </div>
+        ) : null}
         <MessageContent content={message.content} />
         <div
           className={cn(

@@ -47,6 +47,12 @@ export interface MessageAttachment {
   sizeBytes?: number;
 }
 
+export interface AudioNoteDraft {
+  file: File;
+  transcript: string;
+  mimeType?: string;
+}
+
 export interface MessageFeedbackSummary {
   assistantMessageCount: number;
   ratedCount: number;

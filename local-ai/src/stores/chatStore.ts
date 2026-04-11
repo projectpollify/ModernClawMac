@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { attachmentApi } from '@/services/attachments';
-import type { Message } from '@/types';
+import type { AudioNoteDraft, Message } from '@/types';
 import { generateTitleFromMessage } from '@/lib/generateTitle';
 import { contextApi } from '@/services/context';
 import { historyApi } from '@/services/history';
@@ -17,7 +17,7 @@ interface ChatState {
   currentConversationId: string | null;
   streamingContent: string;
   error: string | null;
-  sendMessage: (content: string, imageFiles?: File[]) => Promise<void>;
+  sendMessage: (content: string, imageFiles?: File[], audioNotes?: AudioNoteDraft[]) => Promise<void>;
   setMessageFeedback: (messageId: string, feedback?: 'up' | 'down') => Promise<void>;
   setModel: (model: string) => void;
   newConversation: (conversationId: string) => void;
@@ -37,17 +37,23 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   streamingContent: '',
   error: null,
 
-  sendMessage: async (content: string, imageFiles: File[] = []) => {
+  sendMessage: async (content: string, imageFiles: File[] = [], audioNotes: AudioNoteDraft[] = []) => {
     const { currentModel, messages, currentConversationId } = get();
     const appSettings = useSettingsStore.getState().settings;
     const trimmedContent = content.trim();
+    const normalizedAudioNotes = audioNotes
+      .map((note) => ({
+        ...note,
+        transcript: note.transcript.trim(),
+      }))
+      .filter((note) => note.transcript);
 
     if (!currentModel) {
       set({ error: 'No model selected' });
       return;
     }
 
-    if (!trimmedContent && imageFiles.length === 0) {
+    if (!trimmedContent && imageFiles.length === 0 && normalizedAudioNotes.length === 0) {
       return;
     }
 
@@ -58,26 +64,35 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       conversationId = await conversationStore.createConversation(currentModel);
     }
 
-    const attachments =
-      imageFiles.length > 0
-        ? await Promise.all(
-            imageFiles.map(async (file) => {
-              const bytes = new Uint8Array(await file.arrayBuffer());
-              return attachmentApi.storeAttachment({
-                conversationId,
-                filename: file.name,
-                kind: 'image',
-                mimeType: file.type,
-                bytes,
-              });
-            })
-          )
-        : [];
+    const attachments = await Promise.all([
+      ...imageFiles.map(async (file) => {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        return attachmentApi.storeAttachment({
+          conversationId,
+          filename: file.name,
+          kind: 'image',
+          mimeType: file.type,
+          bytes,
+        });
+      }),
+      ...normalizedAudioNotes.map(async (note) => {
+        const bytes = new Uint8Array(await note.file.arrayBuffer());
+        return attachmentApi.storeAttachment({
+          conversationId,
+          filename: note.file.name,
+          kind: 'audio',
+          mimeType: note.mimeType ?? note.file.type,
+          bytes,
+        });
+      }),
+    ]);
+
+    const userContent = buildUserMessageContent(trimmedContent, normalizedAudioNotes);
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: trimmedContent,
+      content: userContent,
       createdAt: new Date(),
       conversationId,
       attachments,
@@ -355,4 +370,16 @@ function toChatMessage(message: Message): ChatMessage {
         ?.filter((attachment) => attachment.kind === 'image')
         .map((attachment) => attachment.path) ?? [],
   };
+}
+
+function buildUserMessageContent(content: string, audioNotes: AudioNoteDraft[]): string {
+  if (audioNotes.length === 0) {
+    return content;
+  }
+
+  const transcriptSections = audioNotes
+    .map((note, index) => `Audio note ${index + 1} transcript:\n${note.transcript}`)
+    .join('\n\n');
+
+  return content ? `${content}\n\n${transcriptSections}` : transcriptSections;
 }

@@ -1,6 +1,7 @@
 import { type ChangeEvent, type DragEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { convertAudioBlobToWav } from '@/lib/audio';
 import { cn } from '@/lib/utils';
+import type { AudioNoteDraft } from '@/types';
 import { useChatStore } from '@/stores/chatStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useVoiceStore } from '@/stores/voiceStore';
@@ -8,6 +9,7 @@ import { useVoiceStore } from '@/stores/voiceStore';
 const MESSAGE_CHARACTER_LIMIT = 2000;
 const CHARACTER_WARNING_THRESHOLD = 250;
 const MAX_IMAGE_ATTACHMENTS = 4;
+const MAX_AUDIO_ATTACHMENTS = 2;
 
 interface PendingImageAttachment {
   id: string;
@@ -15,16 +17,26 @@ interface PendingImageAttachment {
   previewUrl: string;
 }
 
+interface PendingAudioAttachment {
+  id: string;
+  file: File;
+  audioUrl: string;
+  transcript: string;
+  isTranscribing: boolean;
+}
+
 export function MessageInput() {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isPreparingMic, setIsPreparingMic] = useState(false);
   const [pendingImages, setPendingImages] = useState<PendingImageAttachment[]>([]);
+  const [pendingAudioNotes, setPendingAudioNotes] = useState<PendingAudioAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
-  const [isDraggingImages, setIsDraggingImages] = useState(false);
+  const [isDraggingAttachments, setIsDraggingAttachments] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagesRef = useRef<PendingImageAttachment[]>([]);
+  const pendingAudioNotesRef = useRef<PendingAudioAttachment[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -46,21 +58,39 @@ export function MessageInput() {
   }, [pendingImages]);
 
   useEffect(() => {
+    pendingAudioNotesRef.current = pendingAudioNotes;
+  }, [pendingAudioNotes]);
+
+  useEffect(() => {
     return () => {
       stopStream();
       pendingImagesRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      pendingAudioNotesRef.current.forEach((item) => URL.revokeObjectURL(item.audioUrl));
     };
   }, []);
 
   const handleSubmit = () => {
-    if ((!input.trim() && pendingImages.length === 0) || isLoading) {
+    if (
+      (!input.trim() && pendingImages.length === 0 && pendingAudioNotes.length === 0) ||
+      isLoading ||
+      hasPendingAudioTranscription
+    ) {
       return;
     }
 
     const imagesToSend = pendingImages.map((item) => item.file);
-    void sendMessage(input.trim(), imagesToSend);
+    const audioNotesToSend: AudioNoteDraft[] = pendingAudioNotes
+      .filter((item) => !item.isTranscribing)
+      .map((item) => ({
+        file: item.file,
+        transcript: item.transcript,
+        mimeType: item.file.type,
+      }));
+
+    void sendMessage(input.trim(), imagesToSend, audioNotesToSend);
     setInput('');
     clearPendingImages();
+    clearPendingAudioNotes();
     setAttachmentError(null);
   };
 
@@ -157,7 +187,11 @@ export function MessageInput() {
         return;
       }
 
-      setInput((current) => (current ? `${current} ${cleaned}`.trim() : cleaned));
+      const audioBytes = new Uint8Array(wavBytes.length);
+      audioBytes.set(wavBytes);
+      const audioFile = new File([audioBytes], `audio-note-${Date.now()}.wav`, { type: 'audio/wav' });
+      addReadyAudioNote(audioFile, cleaned);
+      setAttachmentError(null);
       requestAnimationFrame(() => textareaRef.current?.focus());
     } catch (error) {
       setError(`Voice transcription failed. (${String(error)})`);
@@ -176,31 +210,38 @@ export function MessageInput() {
 
   const canUseVoiceInput = settings.enableVoiceInput;
   const remainingCharacters = MESSAGE_CHARACTER_LIMIT - input.length;
+  const hasPendingAudioTranscription = pendingAudioNotes.some((item) => item.isTranscribing);
 
-  const handleSelectImages = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleSelectAttachments = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
-    addPendingImages(files);
+    void addPendingAttachments(files);
     event.target.value = '';
   };
 
-  const addPendingImages = (files: File[]) => {
+  const addPendingAttachments = async (files: File[]) => {
     const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+    const audioFiles = files.filter((file) => file.type.startsWith('audio/'));
 
-    if (imageFiles.length !== files.length) {
-      setAttachmentError('Only image files can be attached right now.');
+    if (imageFiles.length + audioFiles.length !== files.length) {
+      setAttachmentError('Only image and audio files can be attached right now.');
     } else {
       setAttachmentError(null);
     }
 
-    if (imageFiles.length === 0) {
+    addPendingImages(imageFiles);
+    await addPendingAudioFiles(audioFiles);
+  };
+
+  const addPendingImages = (files: File[]) => {
+    if (files.length === 0) {
       return;
     }
 
     setPendingImages((current) => {
       const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - current.length);
-      const nextFiles = imageFiles.slice(0, availableSlots);
+      const nextFiles = files.slice(0, availableSlots);
 
-      if (nextFiles.length < imageFiles.length) {
+      if (nextFiles.length < files.length) {
         setAttachmentError(`You can attach up to ${MAX_IMAGE_ATTACHMENTS} images at a time.`);
       }
 
@@ -214,11 +255,111 @@ export function MessageInput() {
     });
   };
 
+  const addPendingAudioFiles = async (files: File[]) => {
+    if (files.length === 0) {
+      return;
+    }
+
+    const availableSlots = Math.max(0, MAX_AUDIO_ATTACHMENTS - pendingAudioNotesRef.current.length);
+    const nextFiles = files.slice(0, availableSlots);
+
+    if (nextFiles.length < files.length) {
+      setAttachmentError(`You can attach up to ${MAX_AUDIO_ATTACHMENTS} audio notes at a time.`);
+    }
+
+    for (const file of nextFiles) {
+      const id = crypto.randomUUID();
+      const audioUrl = URL.createObjectURL(file);
+
+      setPendingAudioNotes((current) => [
+        ...current,
+        {
+          id,
+          file,
+          audioUrl,
+          transcript: '',
+          isTranscribing: true,
+        },
+      ]);
+
+      try {
+        const wavBytes = await convertAudioBlobToWav(file);
+        const transcript = await transcribeAudio(wavBytes);
+        const cleaned = transcript?.trim() ?? '';
+
+        if (!cleaned) {
+          setPendingAudioNotes((current) => {
+            const target = current.find((item) => item.id === id);
+            if (target) {
+              URL.revokeObjectURL(target.audioUrl);
+            }
+            return current.filter((item) => item.id !== id);
+          });
+          setError('Whisper did not detect usable speech in that audio note.');
+          continue;
+        }
+
+        setPendingAudioNotes((current) =>
+          current.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  transcript: cleaned,
+                  isTranscribing: false,
+                }
+              : item
+          )
+        );
+      } catch (error) {
+        setPendingAudioNotes((current) => {
+          const target = current.find((item) => item.id === id);
+          if (target) {
+            URL.revokeObjectURL(target.audioUrl);
+          }
+          return current.filter((item) => item.id !== id);
+        });
+        setError(`Audio note transcription failed. (${String(error)})`);
+      }
+    }
+  };
+
+  const addReadyAudioNote = (file: File, transcript: string) => {
+    const audioUrl = URL.createObjectURL(file);
+    setPendingAudioNotes((current) => {
+      if (current.length >= MAX_AUDIO_ATTACHMENTS) {
+        URL.revokeObjectURL(audioUrl);
+        setAttachmentError(`You can attach up to ${MAX_AUDIO_ATTACHMENTS} audio notes at a time.`);
+        return current;
+      }
+
+      return [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          file,
+          audioUrl,
+          transcript,
+          isTranscribing: false,
+        },
+      ];
+    });
+  };
+
   const removePendingImage = (id: string) => {
     setPendingImages((current) => {
       const target = current.find((item) => item.id === id);
       if (target) {
         URL.revokeObjectURL(target.previewUrl);
+      }
+      return current.filter((item) => item.id !== id);
+    });
+  };
+
+  const removePendingAudioNote = (id: string) => {
+    setPendingAudioNotes((current) => {
+      const target = current.find((item) => item.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.audioUrl);
       }
       return current.filter((item) => item.id !== id);
     });
@@ -231,10 +372,17 @@ export function MessageInput() {
     });
   };
 
+  const clearPendingAudioNotes = () => {
+    setPendingAudioNotes((current) => {
+      current.forEach((item) => URL.revokeObjectURL(item.audioUrl));
+      return [];
+    });
+  };
+
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    if (!isDraggingImages) {
-      setIsDraggingImages(true);
+    if (!isDraggingAttachments) {
+      setIsDraggingAttachments(true);
     }
   };
 
@@ -243,13 +391,13 @@ export function MessageInput() {
       return;
     }
 
-    setIsDraggingImages(false);
+    setIsDraggingAttachments(false);
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    setIsDraggingImages(false);
-    addPendingImages(Array.from(event.dataTransfer.files ?? []));
+    setIsDraggingAttachments(false);
+    void addPendingAttachments(Array.from(event.dataTransfer.files ?? []));
   };
 
   return (
@@ -263,7 +411,7 @@ export function MessageInput() {
       <div
         className={cn(
           'rounded-2xl border border-border bg-background/90 p-2 transition-colors',
-          isDraggingImages && 'border-primary bg-primary/5'
+          isDraggingAttachments && 'border-primary bg-primary/5'
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -287,6 +435,28 @@ export function MessageInput() {
             ))}
           </div>
         ) : null}
+        {pendingAudioNotes.length > 0 ? (
+          <div className="mb-2 space-y-2 px-1 pt-1">
+            {pendingAudioNotes.map((item) => (
+              <div key={item.id} className="relative rounded-xl border border-border bg-secondary/40 p-3">
+                <button
+                  type="button"
+                  onClick={() => removePendingAudioNote(item.id)}
+                  className="absolute right-2 top-2 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
+                  aria-label={`Remove ${item.file.name}`}
+                  title="Remove audio note"
+                >
+                  X
+                </button>
+                <p className="pr-8 text-xs font-medium text-foreground">{item.file.name}</p>
+                <audio controls preload="metadata" className="mt-2 w-full" src={item.audioUrl} />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {item.isTranscribing ? 'Transcribing audio note...' : item.transcript}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="flex items-end gap-2">
           <div className="relative flex-1">
@@ -298,10 +468,10 @@ export function MessageInput() {
               maxLength={MESSAGE_CHARACTER_LIMIT}
               placeholder={
                 canUseVoiceInput
-                  ? 'Type a message, drop an image, or record with the mic...'
-                  : 'Type a message or drop an image...'
+                  ? 'Type a message, drop media, or record an audio note...'
+                  : 'Type a message or drop media...'
               }
-              disabled={isLoading || isTranscribing}
+              disabled={isLoading || isTranscribing || hasPendingAudioTranscription}
               rows={1}
               className={cn(
                 'w-full resize-none rounded-xl border border-border bg-background px-4 py-3 pr-12',
@@ -321,33 +491,38 @@ export function MessageInput() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,audio/*"
             multiple
             className="hidden"
-            onChange={handleSelectImages}
+            onChange={handleSelectAttachments}
           />
 
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading || isTranscribing || pendingImages.length >= MAX_IMAGE_ATTACHMENTS}
-            aria-label="Attach images"
-            title="Attach images"
+            disabled={
+              isLoading ||
+              isTranscribing ||
+              hasPendingAudioTranscription ||
+              (pendingImages.length >= MAX_IMAGE_ATTACHMENTS && pendingAudioNotes.length >= MAX_AUDIO_ATTACHMENTS)
+            }
+            aria-label="Attach media"
+            title="Attach image or audio note"
             className={cn(
               'rounded-xl border border-border p-3 transition-colors',
               'bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
               'disabled:cursor-not-allowed disabled:opacity-50'
             )}
           >
-            <ImageIcon className="h-5 w-5" />
+            <AttachmentIcon className="h-5 w-5" />
           </button>
 
           {canUseVoiceInput ? (
             <button
               onClick={() => void handleVoiceToggle()}
-              disabled={isLoading || isTranscribing || isPreparingMic}
+              disabled={isLoading || isTranscribing || isPreparingMic || hasPendingAudioTranscription}
               aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-              title={isRecording ? 'Stop recording' : 'Start recording'}
+              title={isRecording ? 'Stop recording audio note' : 'Record audio note'}
               className={cn(
                 'rounded-xl border border-border p-3 transition-colors',
                 isRecording
@@ -362,7 +537,12 @@ export function MessageInput() {
 
           <button
             onClick={handleSubmit}
-            disabled={(!input.trim() && pendingImages.length === 0) || isLoading || isTranscribing}
+            disabled={
+              (!input.trim() && pendingImages.length === 0 && pendingAudioNotes.length === 0) ||
+              isLoading ||
+              isTranscribing ||
+              hasPendingAudioTranscription
+            }
             className={cn(
               'rounded-xl bg-primary p-3 text-primary-foreground transition-colors hover:bg-primary/90',
               'disabled:cursor-not-allowed disabled:opacity-50'
@@ -374,10 +554,19 @@ export function MessageInput() {
       </div>
 
       {attachmentError ? <p className="mt-2 px-1 text-xs text-amber-600">{attachmentError}</p> : null}
-      {pendingImages.length > 0 ? (
+      {pendingImages.length > 0 || pendingAudioNotes.length > 0 ? (
         <p className="mt-2 px-1 text-xs text-muted-foreground">
-          {pendingImages.length} image{pendingImages.length === 1 ? '' : 's'} attached. These will be copied into the
-          active workspace when you send the message.
+          {[
+            pendingImages.length > 0
+              ? `${pendingImages.length} image${pendingImages.length === 1 ? '' : 's'}`
+              : null,
+            pendingAudioNotes.length > 0
+              ? `${pendingAudioNotes.length} audio note${pendingAudioNotes.length === 1 ? '' : 's'}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' and ')}{' '}
+          attached. These will be copied into the active workspace when you send the message.
         </p>
       ) : null}
     </div>
@@ -419,10 +608,10 @@ function SendIcon({ className }: { className?: string }) {
   );
 }
 
-function ImageIcon({ className }: { className?: string }) {
+function AttachmentIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.5-4.5a2 2 0 012.8 0L16 16m-2-2l1.5-1.5a2 2 0 012.8 0L20 14m-14 6h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zm3-10h.01" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21.44 11.05l-8.49 8.49a5.5 5.5 0 11-7.78-7.78l9.2-9.19a3.5 3.5 0 114.95 4.95l-9.2 9.19a1.5 1.5 0 11-2.12-2.12l8.49-8.48" />
     </svg>
   );
 }
