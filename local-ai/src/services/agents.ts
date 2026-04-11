@@ -4,6 +4,8 @@ import type { Agent, AgentVoiceSettings } from '@/types';
 interface AgentDto {
   agentId: string;
   name: string;
+  profileKind?: 'main' | 'support';
+  sharesPrimaryWorkspace?: boolean;
   description?: string;
   status?: string;
   workspacePath?: string;
@@ -22,6 +24,9 @@ function fromAgentDto(dto: AgentDto): Agent {
   return {
     agentId: dto.agentId,
     name: dto.name,
+    profileKind: dto.profileKind ?? undefined,
+    sharesPrimaryWorkspace:
+      typeof dto.sharesPrimaryWorkspace === 'boolean' ? dto.sharesPrimaryWorkspace : undefined,
     description: dto.description ?? undefined,
     status: dto.status ?? undefined,
     workspacePath: dto.workspacePath ?? undefined,

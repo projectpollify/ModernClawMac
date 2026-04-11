@@ -227,7 +227,7 @@ export function SettingsView() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Configure appearance, model defaults, storage behavior, privacy, and voice for your ModernClaw workspace.
+              Configure appearance, model defaults, storage behavior, privacy, and voice for your main ModernClaw workspace. Joe Support stays built in for setup and troubleshooting without exposing full multi-brain management.
             </p>
           </div>
           <Button variant="outline" onClick={() => void refreshModels()}>
