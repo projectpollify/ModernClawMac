@@ -5,7 +5,8 @@ use futures_util::StreamExt;
 use reqwest::Client;
 
 use crate::types::{
-    ChatMessage, ChatOptions, ChatRequest, ChatResponse, Model, ModelsResponse, OllamaStatus,
+    ChatMessage, ChatOptions, ChatRequest, ChatResponse, Model, ModelsResponse, OllamaPullProgress,
+    OllamaStatus,
 };
 
 const OLLAMA_BASE_URL: &str = "http://localhost:11434";
@@ -181,16 +182,59 @@ impl OllamaService {
     }
 
     pub async fn pull_model(&self, name: &str) -> Result<(), String> {
+        self.pull_model_stream(name, |_| {}).await
+    }
+
+    pub async fn pull_model_stream<F>(&self, name: &str, mut on_progress: F) -> Result<(), String>
+    where
+        F: FnMut(OllamaPullProgress) + Send,
+    {
         let response = self
             .client
             .post(format!("{}/api/pull", self.base_url))
-            .json(&serde_json::json!({ "name": name }))
+            .json(&serde_json::json!({ "name": name, "stream": true }))
             .send()
             .await
             .map_err(|error| format!("Request failed: {}", error))?;
 
         if !response.status().is_success() {
             return Err(format!("Pull failed: {}", response.status()));
+        }
+
+        let mut stream = response.bytes_stream();
+        let mut buffer = String::new();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|error| format!("Stream error: {}", error))?;
+            buffer.push_str(&String::from_utf8_lossy(&chunk));
+
+            while let Some(newline_pos) = buffer.find('\n') {
+                let line = buffer[..newline_pos].to_string();
+                buffer = buffer[newline_pos + 1..].to_string();
+
+                if line.trim().is_empty() {
+                    continue;
+                }
+
+                let progress = serde_json::from_str::<OllamaPullProgress>(line.trim())
+                    .map_err(|error| format!("Failed to parse pull progress: {}", error))
+                    .map(|progress| normalize_pull_progress(name, progress))?;
+
+                let is_done = progress.done;
+                on_progress(progress);
+
+                if is_done {
+                    return Ok(());
+                }
+            }
+        }
+
+        if !buffer.trim().is_empty() {
+            let progress = serde_json::from_str::<OllamaPullProgress>(buffer.trim())
+                .map_err(|error| format!("Failed to parse final pull progress: {}", error))
+                .map(|progress| normalize_pull_progress(name, progress))?;
+
+            on_progress(progress);
         }
 
         Ok(())
@@ -237,4 +281,10 @@ impl OllamaService {
             })
             .collect()
     }
+}
+
+fn normalize_pull_progress(name: &str, mut progress: OllamaPullProgress) -> OllamaPullProgress {
+    progress.model = name.to_string();
+    progress.done = progress.done || progress.status.eq_ignore_ascii_case("success");
+    progress
 }

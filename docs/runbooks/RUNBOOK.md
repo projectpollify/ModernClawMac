@@ -12,8 +12,11 @@ This runbook records the bring-up, recovery, and basic verification steps for th
 ## Daily Bring-Up
 
 1. Make sure Ollama is installed.
-2. Start Ollama if it is not already running.
-3. Start the app in Tauri dev mode.
+2. Start the app in Tauri dev mode.
+3. Use onboarding or the `Setup` page to confirm the next required action.
+4. If Ollama is not running yet, use the in-app `Start Ollama` action first.
+5. If no model is installed yet, use the in-app `Install Recommended Model` action.
+6. Confirm workspace files are ready before normal chat use.
 
 ### Commands
 
@@ -22,11 +25,72 @@ cd "C:\Users\pento\Desktop\ModernClawBase\local-ai"
 npm run tauri:dev
 ```
 
-If Ollama is not already running, start it in a separate PowerShell window:
+If the in-app `Start Ollama` action does not bring Ollama up, start it manually in a separate PowerShell window:
 
 ```powershell
 ollama serve
 ```
+
+## Fresh Install Flow
+
+This is the current intended repo-to-running-app path on a clean Windows machine.
+
+1. Install Node.js.
+2. Install the Rust toolchain with `rustup`.
+3. Install Ollama from [ollama.com/download](https://ollama.com/download), or use the in-app `Download Ollama` action once the app is running.
+4. Clone the repo.
+5. Run `npm install` in `local-ai`.
+6. Run `npm run tauri:dev`.
+7. In onboarding or `Setup`, get Ollama running.
+8. Install the recommended model, currently `gemma4:e4b`.
+9. Confirm the workspace files are initialized.
+10. Open chat once the required setup summary is fully ready.
+
+Current scope:
+
+- Windows is the validated platform
+- voice can be skipped for first install
+- Piper and Whisper still require manual setup on a clean machine
+
+## Clean-Machine Validation
+
+Use this exact validation flow when testing install readiness from the repo.
+
+### Test Goal
+
+A tester should be able to clone the repo, follow the docs, and reach normal chat use without hidden setup knowledge.
+
+### Validation Steps
+
+1. Start from a clean Windows machine or VM.
+2. Install Node.js and Rust only.
+3. Clone the repo into a fresh folder.
+4. Open `README.md` and follow only the documented install steps.
+5. Run `npm install`.
+6. Run `npm run tauri:dev`.
+7. Let onboarding guide the machine through setup.
+8. If Ollama is missing, use `Download Ollama` or manually install it from the documented URL.
+9. Use `Start Ollama`.
+10. Use `Install Recommended Model`.
+11. Confirm `SOUL.md`, `USER.md`, and `MEMORY.md` are created.
+12. Reach the chat screen and send a normal text prompt.
+
+### Pass Criteria
+
+- the tester does not need extra verbal guidance beyond repo docs
+- the app makes the next required step obvious
+- Ollama startup is understandable even if the first automatic launch attempt fails
+- model installation is obvious from onboarding or `Setup`
+- workspace initialization completes without manual file creation
+- chat works after required setup is green
+
+### Failure Signals
+
+- the tester has to guess what to do next
+- the tester has to open code or inspect source files to continue
+- the docs skip a required dependency or command
+- the app reports a blocker but does not point to a usable next action
+- the tester cannot tell whether setup is complete
 
 ## Build Verification
 
@@ -121,7 +185,7 @@ Important current limitation:
 - Brain data loads from the current local workspace managed by the app.
 - Curator staged packages are read from `curator/staged/` under the active workspace path.
 - Packages added outside the app appear in the Curator Inbox after refresh.
-- The external Cowork automation setup is documented in [COWORK_CURATOR_AUTOMATION_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/COWORK_CURATOR_AUTOMATION_SPEC.md) so it can be rebuilt if the scheduled task is lost.
+- The external Cowork automation setup is documented in [COWORK_CURATOR_AUTOMATION_SPEC.md](../automation/COWORK_CURATOR_AUTOMATION_SPEC.md) so it can be rebuilt if the scheduled task is lost.
 
 ### Shared Workspace Path
 

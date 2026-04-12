@@ -57,8 +57,8 @@ Avoid a confusing buffet of default models.
 ## Documentation Rules
 Preferred docs:
 - `README.md`
-- `RUNBOOK.md`
-- `MODERNCLAW_BASE_SPLIT_PLAN.md`
+- `docs/runbooks/RUNBOOK.md`
+- `docs/product/MODERNCLAW_BASE_SPLIT_PLAN.md`
 - focused product or system docs only when they stay current
 
 Avoid overlapping planning documents and stale implementation notes.

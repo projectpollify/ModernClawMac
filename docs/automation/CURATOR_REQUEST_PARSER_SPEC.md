@@ -6,7 +6,7 @@ This document defines how Curator should parse a structured Markdown request for
 
 This is a compatibility and advanced-control path.
 
-The primary user experience is defined in [CURATOR_INTAKE_INTERPRETER_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_INTAKE_INTERPRETER_SPEC.md), where Curator interprets free-text user intent and builds the internal request object itself.
+The primary user experience is defined in [CURATOR_INTAKE_INTERPRETER_SPEC.md](CURATOR_INTAKE_INTERPRETER_SPEC.md), where Curator interprets free-text user intent and builds the internal request object itself.
 
 The parser here is for cases where Curator receives a pre-structured request file and must normalize it, validate it, and branch into the correct workflow.
 

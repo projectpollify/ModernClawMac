@@ -1,7 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
-import { ollamaApi, type Model, type OllamaStatus } from '@/services/ollama';
+import { ollamaApi, type Model, type ModelPullProgress, type OllamaStatus } from '@/services/ollama';
+
+export interface ModelDownloadProgress {
+  model: string;
+  status: string;
+  digest?: string;
+  total?: number;
+  completed?: number;
+  percent?: number;
+  done: boolean;
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 interface ModelState {
   models: Model[];
@@ -9,6 +23,7 @@ interface ModelState {
   ollamaStatus: OllamaStatus | null;
   isLoading: boolean;
   downloadingModel: string | null;
+  downloadProgress: ModelDownloadProgress | null;
   error: string | null;
   checkStatus: () => Promise<void>;
   loadModels: () => Promise<void>;
@@ -27,6 +42,7 @@ export const useModelStore = create<ModelState>()(
       ollamaStatus: null,
       isLoading: false,
       downloadingModel: null,
+      downloadProgress: null,
       error: null,
 
       checkStatus: async () => {
@@ -76,18 +92,60 @@ export const useModelStore = create<ModelState>()(
           return;
         }
 
-        set({ downloadingModel: trimmedName, error: null });
+        set({
+          downloadingModel: trimmedName,
+          downloadProgress: {
+            model: trimmedName,
+            status: 'Preparing download...',
+            done: false,
+          },
+          error: null,
+        });
 
         try {
-          await ollamaApi.pullModel(trimmedName);
-          await get().loadModels();
+          await ollamaApi.pullModel(trimmedName, (progress: ModelPullProgress) => {
+            set({
+              downloadProgress: mapPullProgress(progress),
+            });
+          });
+
+          let installed = false;
+
+          for (let attempt = 0; attempt < 5; attempt += 1) {
+            await get().loadModels();
+
+            if (get().models.some((model) => model.name === trimmedName)) {
+              installed = true;
+              break;
+            }
+
+            set({
+              downloadProgress: {
+                model: trimmedName,
+                status: 'Verifying installed model...',
+                done: false,
+              },
+            });
+
+            await delay(1200);
+          }
+
+          if (!installed) {
+            set({
+              error:
+                `ModernClaw could not confirm that ${trimmedName} finished installing yet. ` +
+                'Ollama may still be working in the background. Refresh again in a moment.',
+            });
+            return;
+          }
+
           set((state) => ({
             currentModel: state.currentModel ?? trimmedName,
           }));
         } catch (error) {
           set({ error: String(error) });
         } finally {
-          set({ downloadingModel: null });
+          set({ downloadingModel: null, downloadProgress: null });
         }
       },
 
@@ -117,3 +175,22 @@ export const useModelStore = create<ModelState>()(
     }
   )
 );
+
+function mapPullProgress(progress: ModelPullProgress): ModelDownloadProgress {
+  const percent =
+    typeof progress.completed === 'number' &&
+    typeof progress.total === 'number' &&
+    progress.total > 0
+      ? Math.max(0, Math.min(100, Math.round((progress.completed / progress.total) * 100)))
+      : undefined;
+
+  return {
+    model: progress.model,
+    status: progress.status,
+    digest: progress.digest,
+    total: progress.total,
+    completed: progress.completed,
+    percent,
+    done: progress.done,
+  };
+}

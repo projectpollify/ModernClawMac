@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProgressCard';
 import { Button } from '@/components/ui/Button';
 import { useSetupActions } from '@/hooks/useSetupActions';
 import { CURATED_FLOOR_MODELS, DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
@@ -13,10 +14,18 @@ interface ModelStepProps {
 export function ModelStep({ onNext, onBack }: ModelStepProps) {
   const models = useModelStore((state) => state.models);
   const downloadingModel = useModelStore((state) => state.downloadingModel);
+  const downloadProgress = useModelStore((state) => state.downloadProgress);
   const loadModels = useModelStore((state) => state.loadModels);
   const error = useModelStore((state) => state.error);
   const clearError = useModelStore((state) => state.clearError);
-  const { installRecommendedModel, isInstallingRecommendedModel, actionError, clearActionError } = useSetupActions();
+  const {
+    installRecommendedModel,
+    isInstallingRecommendedModel,
+    actionError,
+    actionNotice,
+    clearActionError,
+    clearActionNotice,
+  } = useSetupActions();
   const [selectedModel, setSelectedModel] = useState(DEFAULT_FLOOR_MODEL);
 
   useEffect(() => {
@@ -47,12 +56,14 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
       onNext={onNext}
       nextDisabled={!hasModels}
       backLabel="Back"
-      nextLabel="Continue"
+      nextLabel={hasModels ? 'Continue to Workspace' : 'Continue'}
     >
       {hasModels ? (
         <div className="rounded-[28px] border border-green-500/25 bg-green-500/10 p-6">
           <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">Installed Models Ready</h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{models.map((model) => model.name).join(', ')}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {models.map((model) => model.name).join(', ')}. The next step is confirming the workspace files.
+          </p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -111,6 +122,25 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
         </div>
       ) : null}
 
+      {actionNotice ? (
+        <div
+          className={`mt-5 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${
+            actionNotice.tone === 'success'
+              ? 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300'
+              : 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+          }`}
+        >
+          <span>{actionNotice.message}</span>
+          <Button variant="ghost" size="sm" onClick={clearActionNotice}>
+            Dismiss
+          </Button>
+        </div>
+      ) : null}
+
+      {!hasModels && downloadingModel && downloadProgress ? (
+        <ModelDownloadProgressCard progress={downloadProgress} className="mt-5" />
+      ) : null}
+
       {!hasModels ? (
         <div className="mt-6 flex items-center justify-center">
           <Button onClick={() => void handleDownload()} disabled={Boolean(downloadingModel) || isInstallingRecommendedModel}>
@@ -119,7 +149,7 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
               : downloadingModel
                 ? `Downloading ${downloadingModel}...`
                 : selectedModel === DEFAULT_FLOOR_MODEL
-                  ? 'Install Recommended Model'
+                  ? `Download ${DEFAULT_FLOOR_MODEL} (Recommended)`
                   : `Download ${selectedModel}`}
           </Button>
         </div>

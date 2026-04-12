@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProgressCard';
 import { CURATED_FLOOR_MODELS } from '@/lib/voiceCatalog';
 import { cn } from '@/lib/utils';
 import { useModelStore } from '@/stores/modelStore';
@@ -7,6 +8,7 @@ export function ModelDownloader() {
   const [customModel, setCustomModel] = useState('');
   const downloadModel = useModelStore((state) => state.downloadModel);
   const downloadingModel = useModelStore((state) => state.downloadingModel);
+  const downloadProgress = useModelStore((state) => state.downloadProgress);
 
   const handleDownload = (name: string) => {
     void downloadModel(name);
@@ -54,16 +56,7 @@ export function ModelDownloader() {
         </button>
       </div>
 
-      {downloadingModel ? (
-        <div className="rounded-xl bg-secondary p-3">
-          <p className="text-sm">
-            Downloading <span className="font-medium">{downloadingModel}</span>...
-          </p>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
-          </div>
-        </div>
-      ) : null}
+      {downloadingModel && downloadProgress ? <ModelDownloadProgressCard progress={downloadProgress} /> : null}
     </div>
   );
 }

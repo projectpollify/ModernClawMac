@@ -35,6 +35,15 @@ export interface OllamaStatus {
   error?: string;
 }
 
+export interface ModelPullProgress {
+  model: string;
+  status: string;
+  digest?: string;
+  total?: number;
+  completed?: number;
+  done: boolean;
+}
+
 export const ollamaApi = {
   async checkStatus(): Promise<OllamaStatus> {
     return invoke('check_ollama_status');
@@ -61,8 +70,22 @@ export const ollamaApi = {
     }
   },
 
-  async pullModel(name: string): Promise<void> {
-    return invoke('pull_model', { name });
+  async pullModel(name: string, onProgress?: (progress: ModelPullProgress) => void): Promise<void> {
+    const unlisten = onProgress
+      ? await listen<ModelPullProgress>('model-pull-progress', (event) => {
+          if (event.payload.model === name) {
+            onProgress(event.payload);
+          }
+        })
+      : null;
+
+    try {
+      return await invoke('pull_model', { name });
+    } finally {
+      if (unlisten) {
+        unlisten();
+      }
+    }
   },
 
   async deleteModel(name: string): Promise<void> {

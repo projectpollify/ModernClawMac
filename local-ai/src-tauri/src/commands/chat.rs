@@ -8,7 +8,9 @@ use crate::services::agent_repo::AgentRepository;
 use crate::services::context::ContextBuilder;
 use crate::services::memory::MemoryService;
 use crate::services::ollama::OllamaService;
-use crate::types::{BuildContextResponse, ChatMessage, ChatResponse, Model, OllamaStatus};
+use crate::types::{
+    BuildContextResponse, ChatMessage, ChatResponse, Model, OllamaPullProgress, OllamaStatus,
+};
 use crate::DatabaseState;
 
 pub struct AppState {
@@ -67,9 +69,18 @@ pub async fn chat_send(
 }
 
 #[tauri::command]
-pub async fn pull_model(state: State<'_, AppState>, name: String) -> Result<(), String> {
+pub async fn pull_model(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<(), String> {
     let ollama = state.ollama.lock().await;
-    ollama.pull_model(&name).await
+
+    ollama
+        .pull_model_stream(&name, |progress: OllamaPullProgress| {
+            let _ = app.emit("model-pull-progress", &progress);
+        })
+        .await
 }
 
 #[tauri::command]

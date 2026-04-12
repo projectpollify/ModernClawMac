@@ -4,6 +4,7 @@ import type { AppSettings } from '@/types/settings';
 import type { VoiceInputStatus, VoiceOutputStatus } from '@/types/voice';
 
 export type SetupItemState = 'ready' | 'attention' | 'checking' | 'optional';
+export type SetupNextStepId = 'checking' | 'ollama' | 'model' | 'memory' | 'ready';
 
 export interface SetupChecklistItem {
   id: string;
@@ -19,6 +20,12 @@ export interface SetupChecklistSummary {
   requiredTotal: number;
   optionalReady: number;
   optionalTotal: number;
+}
+
+export interface SetupNextStep {
+  id: SetupNextStepId;
+  title: string;
+  detail: string;
 }
 
 interface BuildSetupChecklistArgs {
@@ -57,7 +64,12 @@ export function buildSetupChecklist({
   isCheckingOutput,
   isCheckingInput,
   voiceError,
-}: BuildSetupChecklistArgs): { requiredItems: SetupChecklistItem[]; optionalItems: SetupChecklistItem[]; summary: SetupChecklistSummary } {
+}: BuildSetupChecklistArgs): {
+  requiredItems: SetupChecklistItem[];
+  optionalItems: SetupChecklistItem[];
+  summary: SetupChecklistSummary;
+  nextStep: SetupNextStep;
+} {
   const missingFiles = [
     !soul?.exists ? 'SOUL.md' : null,
     !user?.exists ? 'USER.md' : null,
@@ -82,10 +94,82 @@ export function buildSetupChecklist({
     optionalTotal: optionalItems.length,
   };
 
+  const nextStep = buildNextStep({
+    ollamaStatus,
+    models,
+    memoryBasePath,
+    missingFiles,
+    memoryLoading,
+    summary,
+  });
+
   return {
     requiredItems,
     optionalItems,
     summary,
+    nextStep,
+  };
+}
+
+function buildNextStep({
+  ollamaStatus,
+  models,
+  memoryBasePath,
+  missingFiles,
+  memoryLoading,
+  summary,
+}: {
+  ollamaStatus: OllamaStatus | null;
+  models: Model[];
+  memoryBasePath: string | null;
+  missingFiles: string[];
+  memoryLoading: boolean;
+  summary: SetupChecklistSummary;
+}): SetupNextStep {
+  if (!ollamaStatus || (memoryLoading && !memoryBasePath)) {
+    return {
+      id: 'checking',
+      title: 'Checking this machine',
+      detail: 'ModernClaw is still confirming local services and workspace files.',
+    };
+  }
+
+  if (!ollamaStatus.running) {
+    return {
+      id: 'ollama',
+      title: 'Get Ollama running first',
+      detail: 'Install Ollama if needed, then start it so ModernClaw can reach the local model service.',
+    };
+  }
+
+  if (models.length === 0) {
+    return {
+      id: 'model',
+      title: 'Install the recommended model',
+      detail: 'Once Ollama is up, download a supported Gemma 4 model so chat is ready right away.',
+    };
+  }
+
+  if (!memoryBasePath || missingFiles.length > 0) {
+    return {
+      id: 'memory',
+      title: 'Initialize the workspace files',
+      detail: 'Create SOUL.md, USER.md, and MEMORY.md so the base workspace is ready for first use.',
+    };
+  }
+
+  if (summary.requiredReady === summary.requiredTotal) {
+    return {
+      id: 'ready',
+      title: 'Core setup is ready',
+      detail: 'You can start chatting now. Voice features can wait until later if you want to keep setup simple.',
+    };
+  }
+
+  return {
+    id: 'checking',
+    title: 'Refreshing setup state',
+    detail: 'ModernClaw is reconciling the current machine state.',
   };
 }
 

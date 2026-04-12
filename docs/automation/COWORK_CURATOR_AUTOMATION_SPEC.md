@@ -108,9 +108,9 @@ Compatibility intake model:
 
 The automation consumes Markdown request files based on:
 
-- [CURATOR_INTAKE_INTERPRETER_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_INTAKE_INTERPRETER_SPEC.md)
-- [CURATOR_REQUEST_TEMPLATE.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_REQUEST_TEMPLATE.md)
-- [CURATOR_REQUEST_PARSER_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_REQUEST_PARSER_SPEC.md)
+- [CURATOR_INTAKE_INTERPRETER_SPEC.md](CURATOR_INTAKE_INTERPRETER_SPEC.md)
+- [CURATOR_REQUEST_TEMPLATE.md](CURATOR_REQUEST_TEMPLATE.md)
+- [CURATOR_REQUEST_PARSER_SPEC.md](CURATOR_REQUEST_PARSER_SPEC.md)
 
 The parser must support:
 
@@ -234,7 +234,7 @@ If the Cowork task disappears, rebuild it with these requirements:
 3. Mount `%APPDATA%\com.localai.app`.
 4. Resolve the active workspace dynamically from `data.db`.
 5. Scan `<active-workspace>\curator\requests\`.
-6. Parse requests using [CURATOR_REQUEST_PARSER_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_REQUEST_PARSER_SPEC.md).
+6. Parse requests using [CURATOR_REQUEST_PARSER_SPEC.md](CURATOR_REQUEST_PARSER_SPEC.md).
 7. Stage packages into `<active-workspace>\curator\staged\`.
 8. Archive processed requests into `<active-workspace>\curator\archive\`.
 9. Ignore `TEMPLATE-*` request files.

@@ -44,15 +44,23 @@ It keeps the core ModernClaw identity:
 ## Repository Layout
 
 - `local-ai/`: Tauri app source
-- `OVERVIEW.md`: plain-language product summary
-- `SOURCE_SUMMARIES/`: comparison and reference writeups created during product research
-- `KNOWLEDGE_PACK_MODERNCLAW/`: reference knowledge-pack folder
-- `MODERNCLAW_BASE_SPLIT_PLAN.md`: product scope and repo discipline document
-- `RUNBOOK.md`: bring-up and verification notes
-- `COWORK_CURATOR_AUTOMATION_SPEC.md`: rebuild guide for the external Curator automation
-- `COWORK_CURATOR_TASK_PROMPT.md`: copyable prompt for recreating the Curator scheduled task
-- `CURATOR_INTAKE_INTERPRETER_SPEC.md`: one-box intake model for Curator
-- `SUGGESTION_SYSTEM_SPEC.md`: Brain suggestion workflow spec
+- `.github/`: workflows, issue templates, and PR template
+- `docs/product/`: product overview, progress, split plan, and future implementation plans
+- `docs/runbooks/`: bring-up, validation, and operating notes
+- `docs/automation/`: Curator and external automation specs
+- `docs/verification/`: Rosie verification materials
+- `docs/research/`: source summaries and comparison material
+
+## Contributing
+
+If you want to contribute or set up the project as a developer, start here:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): development setup, validation steps, and PR expectations
+- [SUPPORT.md](SUPPORT.md): setup help and where to file different kinds of issues
+- [SECURITY.md](SECURITY.md): how to report vulnerabilities responsibly
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): collaboration standards for the project
+- [docs/runbooks/RUNBOOK.md](docs/runbooks/RUNBOOK.md): bring-up and clean-machine validation
+- [docs/product/PROGRESS.md](docs/product/PROGRESS.md): current execution focus and open questions
 
 ## Technology Stack
 
@@ -102,6 +110,72 @@ For voice features you also need:
 - required Piper voice files
 - required Whisper model files
 
+## Fresh Install
+
+This is the intended clean-machine path for the current repo on Windows.
+
+### 1. Install Base Dependencies
+
+Install these first:
+
+- Node.js
+- Rust toolchain via `rustup`
+
+Then install Ollama:
+
+- from [ollama.com/download](https://ollama.com/download)
+- or from the in-app `Download Ollama` action after the app is running
+
+Important current scope:
+
+- Windows is the validated platform today
+- voice features are optional and can be skipped during first install
+- Piper and Whisper are still manual setup on a clean machine
+
+### 2. Clone The Repo
+
+```powershell
+git clone https://github.com/projectpollify/ModernClaw.git
+cd "C:\path\to\ModernClaw\local-ai"
+```
+
+### 3. Install App Dependencies
+
+```powershell
+npm install
+```
+
+### 4. Launch The App
+
+```powershell
+npm run tauri:dev
+```
+
+### 5. Follow The In-App Setup Flow
+
+After the app opens, use onboarding or the `Setup` page and follow the required steps in this order:
+
+1. Get Ollama running.
+2. Install the recommended model, currently `gemma4:e4b`.
+3. Confirm the workspace files are initialized.
+
+Current in-app helpers:
+
+- `Download Ollama` opens the Ollama site
+- `Start Ollama` tries to launch the local service
+- `Install Recommended Model` downloads the default supported Gemma 4 lane
+- `Initialize Workspace` creates `SOUL.md`, `USER.md`, and `MEMORY.md`
+
+### 6. Confirm Core Setup Is Ready
+
+Core setup is ready when:
+
+- Ollama shows as running
+- at least one local model is installed
+- workspace files are ready
+
+Voice input and output can stay optional for the first pass.
+
 ## Setup And Multimodal Status
 
 Current setup behavior:
@@ -110,6 +184,7 @@ Current setup behavior:
 - the sidebar includes a dedicated `Setup` surface
 - chat shows an attention banner when required setup is incomplete
 - required setup covers Ollama, installed model availability, and workspace files
+- setup surfaces now highlight the single next required action for the machine
 - voice input and output are treated as optional features
 
 Current multimodal behavior:

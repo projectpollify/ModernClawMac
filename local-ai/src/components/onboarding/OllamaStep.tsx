@@ -17,7 +17,9 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
     isOpeningDownload,
     isStartingOllama,
     actionError,
+    actionNotice,
     clearActionError,
+    clearActionNotice,
   } = useSetupActions();
   const [isChecking, setIsChecking] = useState(true);
 
@@ -42,7 +44,7 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
       title="Check Ollama"
       description="ModernClaw talks to Ollama on your machine to run the model layer."
       backLabel="Back"
-      nextLabel="Continue"
+      nextLabel={isRunning ? 'Continue to Model' : 'Continue'}
       onBack={onBack}
       onNext={onNext}
       nextDisabled={!isRunning}
@@ -53,7 +55,11 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
         <StatusCard
           tone="success"
           title="Ollama is running"
-          description={ollamaStatus?.version ? `Version detected: ${ollamaStatus.version}` : 'You are ready for the next step.'}
+          description={
+            ollamaStatus?.version
+              ? `Version detected: ${ollamaStatus.version}. The next step is installing the recommended model.`
+              : 'You are ready to install the recommended model next.'
+          }
         />
       ) : (
         <StatusCard
@@ -100,6 +106,21 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
         <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600">
           <span>{actionError}</span>
           <Button variant="ghost" size="sm" onClick={clearActionError}>
+            Dismiss
+          </Button>
+        </div>
+      ) : null}
+
+      {actionNotice ? (
+        <div
+          className={`mt-5 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${
+            actionNotice.tone === 'success'
+              ? 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300'
+              : 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+          }`}
+        >
+          <span>{actionNotice.message}</span>
+          <Button variant="ghost" size="sm" onClick={clearActionNotice}>
             Dismiss
           </Button>
         </div>

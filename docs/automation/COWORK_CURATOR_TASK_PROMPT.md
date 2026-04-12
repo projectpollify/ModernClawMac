@@ -61,14 +61,14 @@ The intended product model is:
 
 Use this spec as the primary intake model:
 
-- [CURATOR_INTAKE_INTERPRETER_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_INTAKE_INTERPRETER_SPEC.md)
+- [CURATOR_INTAKE_INTERPRETER_SPEC.md](CURATOR_INTAKE_INTERPRETER_SPEC.md)
 
 If the incoming request is already in the structured Markdown template format, also use:
 
 Use the request format defined in:
 
-- [CURATOR_REQUEST_TEMPLATE.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_REQUEST_TEMPLATE.md)
-- [CURATOR_REQUEST_PARSER_SPEC.md](C:/Users/pento/Desktop/ModernClawBase/CURATOR_REQUEST_PARSER_SPEC.md)
+- [CURATOR_REQUEST_TEMPLATE.md](CURATOR_REQUEST_TEMPLATE.md)
+- [CURATOR_REQUEST_PARSER_SPEC.md](CURATOR_REQUEST_PARSER_SPEC.md)
 
 Resolve source mode like this:
 

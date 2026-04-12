@@ -1,29 +1,45 @@
 import { useState } from 'react';
 import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { setupApi } from '@/services/setup';
+import { useMemoryStore } from '@/stores/memoryStore';
 import { useModelStore } from '@/stores/modelStore';
 
 function delay(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+type ActionNoticeTone = 'success' | 'info';
+
 export function useSetupActions() {
   const checkStatus = useModelStore((state) => state.checkStatus);
   const downloadModel = useModelStore((state) => state.downloadModel);
   const loadModels = useModelStore((state) => state.loadModels);
   const downloadingModel = useModelStore((state) => state.downloadingModel);
+  const initializeMemory = useMemoryStore((state) => state.initialize);
+  const memoryBasePath = useMemoryStore((state) => state.basePath);
 
   const [isOpeningDownload, setIsOpeningDownload] = useState(false);
   const [isStartingOllama, setIsStartingOllama] = useState(false);
   const [isInstallingRecommendedModel, setIsInstallingRecommendedModel] = useState(false);
+  const [isInitializingWorkspace, setIsInitializingWorkspace] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ tone: ActionNoticeTone; message: string } | null>(null);
+
+  const resetFeedback = () => {
+    setActionError(null);
+    setActionNotice(null);
+  };
 
   const openOllamaDownload = async () => {
     setIsOpeningDownload(true);
-    setActionError(null);
+    resetFeedback();
 
     try {
       await setupApi.openOllamaDownload();
+      setActionNotice({
+        tone: 'info',
+        message: 'Opened the Ollama download page. Install it there, then come back here and click Start Ollama.',
+      });
     } catch (error) {
       setActionError(String(error));
     } finally {
@@ -33,7 +49,7 @@ export function useSetupActions() {
 
   const startOllama = async () => {
     setIsStartingOllama(true);
-    setActionError(null);
+    resetFeedback();
 
     try {
       await setupApi.startOllama();
@@ -43,6 +59,10 @@ export function useSetupActions() {
         await checkStatus();
 
         if (useModelStore.getState().ollamaStatus?.running) {
+          setActionNotice({
+            tone: 'success',
+            message: 'Ollama is responding. The next step is installing the recommended model.',
+          });
           return true;
         }
       }
@@ -59,18 +79,31 @@ export function useSetupActions() {
 
   const installRecommendedModel = async () => {
     setIsInstallingRecommendedModel(true);
-    setActionError(null);
+    resetFeedback();
 
     try {
       await downloadModel(DEFAULT_FLOOR_MODEL);
       await loadModels();
 
-      const modelError = useModelStore.getState().error;
+      const { error: modelError, models } = useModelStore.getState();
       if (modelError) {
         setActionError(modelError);
         return false;
       }
 
+      const confirmed = models.some((model) => model.name === DEFAULT_FLOOR_MODEL);
+      if (!confirmed) {
+        setActionError(
+          `${DEFAULT_FLOOR_MODEL} has not been confirmed in the installed model list yet. ` +
+            'Give Ollama a little more time, then refresh and try again.'
+        );
+        return false;
+      }
+
+      setActionNotice({
+        tone: 'success',
+        message: `${DEFAULT_FLOOR_MODEL} is installed and verified. The next step is making sure the workspace files are ready.`,
+      });
       return true;
     } catch (error) {
       setActionError(String(error));
@@ -80,15 +113,48 @@ export function useSetupActions() {
     }
   };
 
+  const initializeWorkspace = async () => {
+    setIsInitializingWorkspace(true);
+    resetFeedback();
+
+    try {
+      await initializeMemory();
+
+      const memoryError = useMemoryStore.getState().error;
+      if (memoryError) {
+        setActionError(memoryError);
+        return false;
+      }
+
+      const nextBasePath = useMemoryStore.getState().basePath ?? memoryBasePath;
+      setActionNotice({
+        tone: 'success',
+        message: nextBasePath
+          ? `Workspace files are ready at ${nextBasePath}.`
+          : 'Workspace files are ready.',
+      });
+      return true;
+    } catch (error) {
+      setActionError(String(error));
+      return false;
+    } finally {
+      setIsInitializingWorkspace(false);
+    }
+  };
+
   return {
     openOllamaDownload,
     startOllama,
     installRecommendedModel,
+    initializeWorkspace,
     isOpeningDownload,
     isStartingOllama,
     isInstallingRecommendedModel,
+    isInitializingWorkspace,
     isDownloadingAnyModel: Boolean(downloadingModel),
     actionError,
+    actionNotice,
     clearActionError: () => setActionError(null),
+    clearActionNotice: () => setActionNotice(null),
   };
 }

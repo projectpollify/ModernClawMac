@@ -32,7 +32,7 @@ npm install
 npm run tauri:dev
 ```
 
-For the full Windows bring-up flow, see [RUNBOOK.md](../RUNBOOK.md).
+For the full Windows bring-up flow, see [RUNBOOK.md](../docs/runbooks/RUNBOOK.md).
 
 ## Build Commands
 

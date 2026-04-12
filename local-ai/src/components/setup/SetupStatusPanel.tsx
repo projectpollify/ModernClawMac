@@ -1,11 +1,13 @@
+import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProgressCard';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useSetupActions } from '@/hooks/useSetupActions';
 import { cn } from '@/lib/utils';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
-import type { SetupChecklistItem } from '@/lib/setupStatus';
+import type { SetupChecklistItem, SetupNextStep } from '@/lib/setupStatus';
 import { memoryApi } from '@/services/memory';
 import { useModelStore } from '@/stores/modelStore';
+import { useViewStore } from '@/stores/uiStore';
 
 interface SetupStatusPanelProps {
   title?: string;
@@ -20,18 +22,24 @@ export function SetupStatusPanel({
   className,
   compact = false,
 }: SetupStatusPanelProps) {
-  const { requiredItems, optionalItems, summary, isRefreshing, runRefresh, settings, memoryBasePath } = useSetupStatus();
+  const { requiredItems, optionalItems, summary, nextStep, isRefreshing, runRefresh, settings, memoryBasePath } = useSetupStatus();
   const ollamaStatus = useModelStore((state) => state.ollamaStatus);
+  const downloadProgress = useModelStore((state) => state.downloadProgress);
+  const setView = useViewStore((state) => state.setView);
   const {
     openOllamaDownload,
     startOllama,
     installRecommendedModel,
+    initializeWorkspace,
     isOpeningDownload,
     isStartingOllama,
     isInstallingRecommendedModel,
+    isInitializingWorkspace,
     isDownloadingAnyModel,
     actionError,
+    actionNotice,
     clearActionError,
+    clearActionNotice,
   } = useSetupActions();
 
   const summaryTone =
@@ -44,6 +52,71 @@ export function SetupStatusPanel({
       const fallbackPath = memoryBasePath ?? settings.memoryPath ?? 'Path unavailable';
       window.alert(`Unable to open the workspace folder.\n\n${fallbackPath}`);
     }
+  };
+
+  const renderSetupActions = (step: SetupNextStep | SetupChecklistItem) => {
+    if (step.id === 'ollama') {
+      return (
+        <>
+          <Button variant="outline" size="sm" onClick={() => void openOllamaDownload()} disabled={isOpeningDownload}>
+            {isOpeningDownload ? 'Opening Download...' : 'Download Ollama'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
+            {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </>
+      );
+    }
+
+    if (step.id === 'model') {
+      return (
+        <>
+          {ollamaStatus?.running ? (
+            <Button size="sm" onClick={() => void installRecommendedModel()} disabled={isInstallingRecommendedModel || isDownloadingAnyModel}>
+              {isInstallingRecommendedModel || isDownloadingAnyModel ? 'Installing Model...' : 'Install Recommended Model'}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
+              {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama First'}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </>
+      );
+    }
+
+    if (step.id === 'memory') {
+      return (
+        <>
+          <Button variant="outline" size="sm" onClick={() => void initializeWorkspace()} disabled={isInitializingWorkspace}>
+            {isInitializingWorkspace ? 'Initializing...' : 'Initialize Workspace'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void handleOpenFolder()} disabled={!memoryBasePath && !settings.memoryPath}>
+            Open Workspace Folder
+          </Button>
+        </>
+      );
+    }
+
+    if (step.id === 'ready') {
+      return (
+        <>
+          <Button size="sm" onClick={() => setView('chat')}>
+            Open Chat
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setView('memory')}>
+            Open Memory
+          </Button>
+        </>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -75,6 +148,13 @@ export function SetupStatusPanel({
         </p>
       </div>
 
+      <div className="mt-4 rounded-[24px] border border-primary/20 bg-primary/5 px-4 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Next Required Action</p>
+        <p className="mt-2 text-sm font-medium">{nextStep.title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{nextStep.detail}</p>
+        {renderSetupActions(nextStep) ? <div className="mt-4 flex flex-wrap gap-2">{renderSetupActions(nextStep)}</div> : null}
+      </div>
+
       {actionError ? (
         <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600">
           <span>{actionError}</span>
@@ -84,71 +164,30 @@ export function SetupStatusPanel({
         </div>
       ) : null}
 
+      {actionNotice ? (
+        <div
+          className={cn(
+            'mt-4 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm',
+            actionNotice.tone === 'success'
+              ? 'border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300'
+              : 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+          )}
+        >
+          <span>{actionNotice.message}</span>
+          <Button variant="ghost" size="sm" onClick={clearActionNotice}>
+            Dismiss
+          </Button>
+        </div>
+      ) : null}
+
+      {downloadProgress ? <ModelDownloadProgressCard progress={downloadProgress} className="mt-4" /> : null}
+
       <div className={cn('mt-5 grid gap-5', compact ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2')}>
         <ChecklistGroup
           title="Required Setup"
           description="These items need to be ready before normal chat use."
           items={requiredItems}
-          renderActions={(item) => {
-            if (item.id === 'ollama' && item.state === 'attention') {
-              return (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => void openOllamaDownload()} disabled={isOpeningDownload}>
-                    {isOpeningDownload ? 'Opening Download...' : 'Download Ollama'}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
-                    {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
-                    {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                  </Button>
-                </>
-              );
-            }
-
-            if (item.id === 'model' && item.state === 'attention') {
-              return (
-                <>
-                  {ollamaStatus?.running ? (
-                    <Button
-                      size="sm"
-                      onClick={() => void installRecommendedModel()}
-                      disabled={isInstallingRecommendedModel || isDownloadingAnyModel}
-                    >
-                      {isInstallingRecommendedModel || isDownloadingAnyModel ? 'Installing Model...' : 'Install Recommended Model'}
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
-                      {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama First'}
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
-                    {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                  </Button>
-                </>
-              );
-            }
-
-            if (item.id === 'memory' && item.state === 'attention') {
-              return (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
-                    {isRefreshing ? 'Initializing...' : 'Initialize Workspace'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleOpenFolder()}
-                    disabled={!memoryBasePath && !settings.memoryPath}
-                  >
-                    Open Workspace Folder
-                  </Button>
-                </>
-              );
-            }
-
-            return null;
-          }}
+          renderActions={(item) => (item.state === 'attention' ? renderSetupActions(item) : null)}
         />
         <ChecklistGroup
           title="Optional Features"

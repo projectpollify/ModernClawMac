@@ -70,6 +70,21 @@ pub struct OllamaStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OllamaPullProgress {
+    #[serde(default)]
+    pub model: String,
+    pub status: String,
+    #[serde(default)]
+    pub digest: Option<String>,
+    #[serde(default)]
+    pub total: Option<u64>,
+    #[serde(default)]
+    pub completed: Option<u64>,
+    #[serde(default)]
+    pub done: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Agent {
     pub agent_id: String,
     pub name: String,

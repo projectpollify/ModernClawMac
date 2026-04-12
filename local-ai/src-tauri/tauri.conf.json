@@ -1,5 +1,5 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ModernClaw",
   "version": "0.1.0",
   "identifier": "com.localai.app",
@@ -47,10 +47,10 @@
       "icons/icon.png"
     ],
     "publisher": "ModernClaw",
-    "shortDescription": "Private, offline brain creator for local AI agents",
-    "longDescription": "A local-first desktop application for building private AI brains with memory, knowledge, voice, and offline-capable model management through Ollama.",
+    "shortDescription": "Local-first AI workspace for durable personal context and chat.",
+    "longDescription": "ModernClaw is a local-first desktop workspace for private AI chat, durable Markdown memory, guided setup, and on-device context management through Ollama.",
     "category": "Productivity",
-    "copyright": "© 2026 ModernClaw",
+    "copyright": "(c) 2026 ModernClaw",
     "macOS": {
       "minimumSystemVersion": "10.15"
     },
@@ -59,10 +59,3 @@
     }
   }
 }
-
-
-
-
-
-
-
