@@ -36,7 +36,7 @@ export function MessageMetricsRow({ metrics, className }: MessageMetricsRowProps
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
             <div
-              className="h-full rounded-full bg-foreground/70 transition-[width] duration-200"
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
               style={{ width: `${Math.max(4, usagePercent ?? 0)}%` }}
             />
           </div>
