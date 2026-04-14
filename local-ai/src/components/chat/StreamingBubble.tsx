@@ -9,7 +9,7 @@ interface StreamingBubbleProps {
 }
 
 export function StreamingBubble({ content, metrics }: StreamingBubbleProps) {
-  const showTokenCount = useSettingsStore((state) => state.settings.showTokenCount);
+  const { showTokenCount, showResponseMetrics } = useSettingsStore((state) => state.settings);
   const hasVisibleContent = Boolean(content.trim());
 
   return (
@@ -20,7 +20,7 @@ export function StreamingBubble({ content, metrics }: StreamingBubbleProps) {
 
       <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-secondary px-4 py-3 text-secondary-foreground shadow-sm">
         {hasVisibleContent ? <MessageContent content={content} /> : <p className="text-sm opacity-70">Thinking...</p>}
-        <MessageMetricsRow metrics={metrics} />
+        {showResponseMetrics ? <MessageMetricsRow metrics={metrics} /> : null}
         {showTokenCount && hasVisibleContent ? (
           <div className="mt-2 text-xs opacity-60">~{Math.max(1, Math.ceil(content.length / 4))} tokens</div>
         ) : null}

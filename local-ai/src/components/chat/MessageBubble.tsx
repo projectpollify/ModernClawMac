@@ -16,7 +16,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
   const setMessageFeedback = useChatStore((state) => state.setMessageFeedback);
-  const { showTokenCount, enableVoiceOutput } = useSettingsStore((state) => state.settings);
+  const { showTokenCount, showResponseMetrics, enableVoiceOutput } = useSettingsStore((state) => state.settings);
   const { speakMessage, isSpeaking, isPaused, speakingMessageId } = useVoiceStore();
   const tokenCount = estimateTokens(message.content);
   const messageMetrics =
@@ -83,7 +83,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         ) : null}
         <MessageContent content={message.content} />
-        {isAssistant ? <MessageMetricsRow metrics={messageMetrics} /> : null}
+        {isAssistant && showResponseMetrics ? <MessageMetricsRow metrics={messageMetrics} /> : null}
         <div
           className={cn(
             'mt-2 flex items-center gap-2 text-xs opacity-60',

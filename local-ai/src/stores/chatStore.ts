@@ -3,6 +3,7 @@ import { attachmentApi } from '@/services/attachments';
 import type { AudioNoteDraft, Message } from '@/types';
 import { generateTitleFromMessage } from '@/lib/generateTitle';
 import { IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME, MODEL_PROVIDER_STATUS_URL } from '@/lib/providerConfig';
+import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { contextApi, type ContextStats } from '@/services/context';
 import { historyApi } from '@/services/history';
 import { ollamaApi, type ChatMessage, type ChatResponse } from '@/services/ollama';
@@ -35,7 +36,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   messagesByConversation: {},
   isLoading: false,
   isStreaming: false,
-  currentModel: IS_MAC_MODEL_PROVIDER ? 'gemma4' : 'gemma4:e4b',
+  currentModel: DEFAULT_FLOOR_MODEL,
   currentConversationId: null,
   streamingContent: '',
   streamingMetrics: null,

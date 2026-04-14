@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
-import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
+import { DEFAULT_FLOOR_MODEL, LIGHTWEIGHT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { setupApi } from '@/services/setup';
 import { useMemoryStore } from '@/stores/memoryStore';
 import { useModelStore } from '@/stores/modelStore';
@@ -40,7 +40,7 @@ export function useSetupActions() {
       setActionNotice({
         tone: 'info',
         message: IS_MAC_MODEL_PROVIDER
-          ? 'Opened LM Studio. Start the local server on port 1234 there, load a Gemma 4 model, then come back and refresh setup.'
+          ? `Opened LM Studio. Start the local server on port 1234 there, then load either ${DEFAULT_FLOOR_MODEL} or ${LIGHTWEIGHT_FLOOR_MODEL} before refreshing setup.`
           : 'Opened the Ollama download page. Install it there, then come back here and click Start Ollama.',
       });
     } catch (error) {
@@ -60,7 +60,7 @@ export function useSetupActions() {
       if (IS_MAC_MODEL_PROVIDER) {
         setActionNotice({
           tone: 'info',
-          message: `Opened ${MODEL_PROVIDER_NAME}. Start the local server on port 1234 there, load a Gemma 4 model, then refresh setup.`,
+          message: `Opened ${MODEL_PROVIDER_NAME}. Start the local server on port 1234 there, then load either ${DEFAULT_FLOOR_MODEL} or ${LIGHTWEIGHT_FLOOR_MODEL} before refreshing setup.`,
         });
       }
 
@@ -72,7 +72,7 @@ export function useSetupActions() {
           setActionNotice({
             tone: 'success',
             message: IS_MAC_MODEL_PROVIDER
-              ? `${MODEL_PROVIDER_NAME} is responding. The next step is making sure a Gemma 4 model is loaded there.`
+              ? `${MODEL_PROVIDER_NAME} is responding. The next step is making sure either ${DEFAULT_FLOOR_MODEL} or ${LIGHTWEIGHT_FLOOR_MODEL} is loaded there.`
               : 'Ollama is responding. The next step is installing the recommended model.',
           });
           return true;
@@ -81,7 +81,7 @@ export function useSetupActions() {
 
       setActionError(
         IS_MAC_MODEL_PROVIDER
-          ? 'LM Studio is not responding yet. Open LM Studio, start the local server on port 1234, load a Gemma 4 model, then refresh setup.'
+          ? `LM Studio is not responding yet. Open LM Studio, start the local server on port 1234, then load either ${DEFAULT_FLOOR_MODEL} or ${LIGHTWEIGHT_FLOOR_MODEL} before refreshing setup.`
           : 'Tried to start Ollama, but it is not responding yet. If this is a fresh install, open Ollama once and then refresh setup.'
       );
       return false;
@@ -102,14 +102,16 @@ export function useSetupActions() {
         await loadModels();
         const { models } = useModelStore.getState();
 
-        if (!models.some((model) => model.name.toLowerCase().includes('gemma4'))) {
-          setActionError('Load a Gemma 4 model inside LM Studio, then refresh setup here.');
+        if (!models.some((model) => [DEFAULT_FLOOR_MODEL, LIGHTWEIGHT_FLOOR_MODEL].includes(model.name))) {
+          setActionError(
+            `Load either ${DEFAULT_FLOOR_MODEL} or ${LIGHTWEIGHT_FLOOR_MODEL} inside LM Studio, then refresh setup here.`
+          );
           return false;
         }
 
         setActionNotice({
           tone: 'success',
-          message: 'LM Studio already has a Gemma 4 model loaded. The next step is making sure the workspace files are ready.',
+          message: 'LM Studio already has a standard Gemma 4 model loaded. The next step is making sure the workspace files are ready.',
         });
         return true;
       }

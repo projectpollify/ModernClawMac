@@ -10,6 +10,7 @@ export interface AppSettings {
   streamResponses: boolean;
   sendOnEnter: boolean;
   showTokenCount: boolean;
+  showResponseMetrics: boolean;
   saveConversationHistory: boolean;
   enableVoiceOutput: boolean;
   piperVoicePreset: string;
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   streamResponses: true,
   sendOnEnter: true,
   showTokenCount: false,
+  showResponseMetrics: true,
   saveConversationHistory: true,
   enableVoiceOutput: false,
   piperVoicePreset: DEFAULT_PIPER_VOICE_ID,

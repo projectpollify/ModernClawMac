@@ -73,7 +73,7 @@ export function ModelSelector() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {IS_MAC_MODEL_PROVIDER
-                ? 'Choosing a loaded LM Studio model here saves it as the default for this workspace.'
+                ? 'Choosing a loaded model here saves it as the default for this workspace.'
                 : 'Choosing a model here saves it as the default for this workspace.'}
             </p>
           </div>

@@ -7,7 +7,6 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useVoiceStore } from '@/stores/voiceStore';
 
 const MESSAGE_CHARACTER_LIMIT = 2000;
-const CHARACTER_WARNING_THRESHOLD = 250;
 const MAX_IMAGE_ATTACHMENTS = 4;
 const MAX_AUDIO_ATTACHMENTS = 2;
 
@@ -209,7 +208,6 @@ export function MessageInput() {
   };
 
   const canUseVoiceInput = settings.enableVoiceInput;
-  const remainingCharacters = MESSAGE_CHARACTER_LIMIT - input.length;
   const hasPendingAudioTranscription = pendingAudioNotes.some((item) => item.isTranscribing);
 
   const handleSelectAttachments = (event: ChangeEvent<HTMLInputElement>) => {
@@ -402,12 +400,6 @@ export function MessageInput() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-2 flex items-center justify-between px-1 text-xs text-muted-foreground">
-        <span>Use up to {MESSAGE_CHARACTER_LIMIT.toLocaleString()} characters to describe what you want.</span>
-        <span className={cn(remainingCharacters <= CHARACTER_WARNING_THRESHOLD ? 'text-amber-600' : '')}>
-          {remainingCharacters.toLocaleString()} left
-        </span>
-      </div>
       <div
         className={cn(
           'rounded-2xl border border-border bg-background/90 p-2 transition-colors',

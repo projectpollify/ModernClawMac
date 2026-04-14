@@ -24,8 +24,8 @@ export const CURATED_PIPER_VOICES: CuratedVoiceOption[] = [
 
 export const DEFAULT_PIPER_VOICE_ID = 'amy-medium';
 export const DEFAULT_WHISPER_MODEL_FILENAME = 'ggml-base.en.bin';
-export const DEFAULT_FLOOR_MODEL = IS_MAC_MODEL_PROVIDER ? 'gemma4' : 'gemma4:e4b';
-export const LIGHTWEIGHT_FLOOR_MODEL = IS_MAC_MODEL_PROVIDER ? 'gemma4' : 'gemma4:e2b';
+export const DEFAULT_FLOOR_MODEL = IS_MAC_MODEL_PROVIDER ? 'google/gemma-4-e4b' : 'gemma4:e4b';
+export const LIGHTWEIGHT_FLOOR_MODEL = IS_MAC_MODEL_PROVIDER ? 'google/gemma-4-e2b' : 'gemma4:e2b';
 export const LEGACY_FLOOR_MODEL = 'nchapman/dolphin3.0-qwen2.5:3b';
 export const LEGACY_FALLBACK_MODEL = 'dolphin3:8b';
 
@@ -33,10 +33,17 @@ export const CURATED_FLOOR_MODELS = IS_MAC_MODEL_PROVIDER
   ? ([
       {
         name: DEFAULT_FLOOR_MODEL,
-        size: 'Load in LM Studio',
+        size: 'Primary lane',
         description:
-          'ModernClawMac expects LM Studio to serve a loaded Gemma 4 model on port 1234. Start the local server there, then refresh this app.',
+          'Primary Gemma 4 setup for ModernClawMac. Load this in LM Studio when you want the strongest local quality lane.',
         recommended: true,
+      },
+      {
+        name: LIGHTWEIGHT_FLOOR_MODEL,
+        size: 'Lighter lane',
+        description:
+          'Smaller Gemma 4 lane for ModernClawMac when you want a lower-resource option with the same supported family.',
+        recommended: false,
       },
     ] as const)
   : ([

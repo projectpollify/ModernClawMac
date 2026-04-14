@@ -331,6 +331,16 @@ export function SettingsView() {
                   onChange={(value) => void updateSetting('showTokenCount', value)}
                 />
               </SettingRow>
+
+              <SettingRow
+                label="Show Response Metrics"
+                description="Display context usage, tokens per second, output tokens, duration, and stop reason beneath assistant replies."
+              >
+                <Toggle
+                  checked={settings.showResponseMetrics}
+                  onChange={(value) => void updateSetting('showResponseMetrics', value)}
+                />
+              </SettingRow>
             </SettingsSection>
 
             <SettingsSection title="Voice Output">

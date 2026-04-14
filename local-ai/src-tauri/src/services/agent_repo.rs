@@ -12,7 +12,7 @@ const MAIN_WORKSPACE_DESCRIPTION: &str =
 const JOE_SUPPORT_DESCRIPTION: &str =
     "Built-in AI support assistant for setup, troubleshooting, and product guidance.";
 #[cfg(target_os = "macos")]
-const DEFAULT_AGENT_MODEL: &str = "gemma4";
+const DEFAULT_AGENT_MODEL: &str = "google/gemma-4-e4b";
 #[cfg(not(target_os = "macos"))]
 const DEFAULT_AGENT_MODEL: &str = "gemma4:e4b";
 const MAIN_WORKSPACE_PIPER_VOICE_PRESET: &str = "amy-medium";

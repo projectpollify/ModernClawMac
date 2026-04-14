@@ -20,14 +20,14 @@ export function ModelDownloader() {
       <div className="space-y-4">
         <div className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted-foreground">
           ModernClawMac reads whichever models are currently loaded in LM Studio. Start the LM Studio local server on
-          port 1234, load a Gemma 4 model there, then come back here and refresh.
+          port 1234, then load one of the standard Gemma 4 lanes below and come back here to refresh.
         </div>
 
         <div className="flex flex-wrap gap-2">
           {CURATED_FLOOR_MODELS.map((model) => (
             <div key={model.name} className="rounded-xl border border-border bg-background px-3 py-2 text-left text-sm">
-              <span className="font-medium">{model.name}</span>
-              <span className="ml-2 text-muted-foreground">{model.size}</span>
+              <div className="font-medium">{model.name}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{model.description}</div>
             </div>
           ))}
         </div>
