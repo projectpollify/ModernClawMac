@@ -29,7 +29,7 @@ use commands::voice::{voice_check_input_status, voice_check_status, voice_speak,
 use services::agent_repo::AgentRepository;
 use services::database::Database;
 use services::memory::MemoryService;
-use services::ollama::OllamaService;
+use services::provider::ProviderService;
 use tauri::Manager;
 use tokio::sync::Mutex;
 
@@ -67,7 +67,7 @@ fn default_memory_path(app: &tauri::App) -> Result<PathBuf, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState {
-        ollama: Arc::new(Mutex::new(OllamaService::new())),
+        provider: Arc::new(Mutex::new(ProviderService::new_default())),
     };
 
     tauri::Builder::default()

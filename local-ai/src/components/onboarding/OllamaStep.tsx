@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME, MODEL_PROVIDER_STATUS_URL } from '@/lib/providerConfig';
 import { useSetupActions } from '@/hooks/useSetupActions';
 import { useModelStore } from '@/stores/modelStore';
 
@@ -12,7 +13,7 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
   const ollamaStatus = useModelStore((state) => state.ollamaStatus);
   const checkStatus = useModelStore((state) => state.checkStatus);
   const {
-    openOllamaDownload,
+    openProviderApp,
     startOllama,
     isOpeningDownload,
     isStartingOllama,
@@ -41,8 +42,12 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
   return (
     <StepShell
       eyebrow="Step 1"
-      title="Check Ollama"
-      description="ModernClaw talks to Ollama on your machine to run the model layer."
+      title={IS_MAC_MODEL_PROVIDER ? 'Check LM Studio' : 'Check Ollama'}
+      description={
+        IS_MAC_MODEL_PROVIDER
+          ? 'ModernClawMac talks to LM Studio on your machine to run the model layer.'
+          : 'ModernClaw talks to Ollama on your machine to run the model layer.'
+      }
       backLabel="Back"
       nextLabel={isRunning ? 'Continue to Model' : 'Continue'}
       onBack={onBack}
@@ -50,50 +55,74 @@ export function OllamaStep({ onNext, onBack }: OllamaStepProps) {
       nextDisabled={!isRunning}
     >
       {isChecking ? (
-        <StatusCard tone="neutral" title="Checking for Ollama..." description="Looking for a running Ollama instance on localhost:11434." />
+        <StatusCard
+          tone="neutral"
+          title={IS_MAC_MODEL_PROVIDER ? 'Checking for LM Studio...' : 'Checking for Ollama...'}
+          description={`Looking for a running ${MODEL_PROVIDER_NAME} instance at ${MODEL_PROVIDER_STATUS_URL}.`}
+        />
       ) : isRunning ? (
         <StatusCard
           tone="success"
-          title="Ollama is running"
+          title={`${MODEL_PROVIDER_NAME} is running`}
           description={
             ollamaStatus?.version
-              ? `Version detected: ${ollamaStatus.version}. The next step is installing the recommended model.`
-              : 'You are ready to install the recommended model next.'
+              ? `Version detected: ${ollamaStatus.version}. The next step is ${
+                  IS_MAC_MODEL_PROVIDER ? 'loading a Gemma 4 model in LM Studio.' : 'installing the recommended model.'
+                }`
+              : IS_MAC_MODEL_PROVIDER
+                ? 'You are ready to load the recommended model in LM Studio next.'
+                : 'You are ready to install the recommended model next.'
           }
         />
       ) : (
         <StatusCard
           tone="warning"
-          title="Ollama not detected"
-          description="Install and start Ollama, then check again. ModernClaw depends on it for model execution."
+          title={IS_MAC_MODEL_PROVIDER ? 'LM Studio not detected' : 'Ollama not detected'}
+          description={
+            IS_MAC_MODEL_PROVIDER
+              ? 'Open LM Studio, start its local server on port 1234, load a Gemma 4 model, then check again.'
+              : 'Install and start Ollama, then check again. ModernClaw depends on it for model execution.'
+          }
         >
           <div className="mt-5 rounded-2xl bg-background/60 p-4 text-left text-sm leading-7 text-muted-foreground">
             <ol className="list-decimal space-y-1 pl-5">
-              <li>
-                Install Ollama from{' '}
-                <a
-                  href="https://ollama.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  ollama.com
-                </a>
-                .
-              </li>
-              <li>Start Ollama on this machine.</li>
-              <li>Come back and click Check Again.</li>
+              {IS_MAC_MODEL_PROVIDER ? (
+                <>
+                  <li>Open LM Studio on this machine.</li>
+                  <li>Start the local server on port 1234 from LM Studio.</li>
+                  <li>Load a Gemma 4 model there, then come back and click Check Again.</li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    Install Ollama from{' '}
+                    <a
+                      href="https://ollama.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      ollama.com
+                    </a>
+                    .
+                  </li>
+                  <li>Start Ollama on this machine.</li>
+                  <li>Come back and click Check Again.</li>
+                </>
+              )}
             </ol>
           </div>
 
           <div className="mt-6">
             <div className="flex flex-wrap justify-center gap-3">
-              <Button variant="outline" onClick={() => void openOllamaDownload()} disabled={isOpeningDownload}>
-                {isOpeningDownload ? 'Opening Download...' : 'Download Ollama'}
+              <Button variant="outline" onClick={() => void openProviderApp()} disabled={isOpeningDownload}>
+                {isOpeningDownload ? 'Opening...' : IS_MAC_MODEL_PROVIDER ? 'Open LM Studio' : 'Download Ollama'}
               </Button>
-              <Button variant="outline" onClick={() => void startOllama()} disabled={isStartingOllama}>
-                {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
-              </Button>
+              {!IS_MAC_MODEL_PROVIDER ? (
+                <Button variant="outline" onClick={() => void startOllama()} disabled={isStartingOllama}>
+                  {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
+                </Button>
+              ) : null}
               <Button variant="outline" onClick={() => void runCheck()}>
                 Check Again
               </Button>
@@ -199,5 +228,4 @@ function StatusCard({
     </div>
   );
 }
-
 

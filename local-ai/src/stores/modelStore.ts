@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { resolvePreferredModelName } from '@/lib/providerConfig';
 import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { ollamaApi, type Model, type ModelPullProgress, type OllamaStatus } from '@/services/ollama';
 
@@ -64,12 +65,10 @@ export const useModelStore = create<ModelState>()(
         try {
           const models = await ollamaApi.listModels();
           const currentModel = get().currentModel;
-          const modelNames = new Set(models.map((model) => model.name));
-          const nextCurrentModel = modelNames.has(DEFAULT_FLOOR_MODEL)
-            ? DEFAULT_FLOOR_MODEL
-            : currentModel && modelNames.has(currentModel)
-              ? currentModel
-              : models[0]?.name ?? null;
+          const nextCurrentModel = resolvePreferredModelName(
+            currentModel ?? DEFAULT_FLOOR_MODEL,
+            models.map((model) => model.name)
+          );
 
           set({
             models,
@@ -133,8 +132,8 @@ export const useModelStore = create<ModelState>()(
           if (!installed) {
             set({
               error:
-                `ModernClaw could not confirm that ${trimmedName} finished installing yet. ` +
-                'Ollama may still be working in the background. Refresh again in a moment.',
+                `ModernClaw could not confirm that ${trimmedName} is available yet. ` +
+                'If you are using ModernClawMac, load the model in LM Studio and refresh again.',
             });
             return;
           }

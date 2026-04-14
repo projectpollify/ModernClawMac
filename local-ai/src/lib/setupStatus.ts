@@ -1,3 +1,4 @@
+import { APP_DISPLAY_NAME, IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
 import type { MemoryFile } from '@/services/memory';
 import type { Model, OllamaStatus } from '@/services/ollama';
 import type { AppSettings } from '@/types/settings';
@@ -130,23 +131,27 @@ function buildNextStep({
     return {
       id: 'checking',
       title: 'Checking this machine',
-      detail: 'ModernClaw is still confirming local services and workspace files.',
+      detail: `${APP_DISPLAY_NAME} is still confirming local services and workspace files.`,
     };
   }
 
   if (!ollamaStatus.running) {
     return {
       id: 'ollama',
-      title: 'Get Ollama running first',
-      detail: 'Install Ollama if needed, then start it so ModernClaw can reach the local model service.',
+      title: IS_MAC_MODEL_PROVIDER ? 'Get LM Studio serving first' : 'Get Ollama running first',
+      detail: IS_MAC_MODEL_PROVIDER
+        ? `Open LM Studio, start its local server on port 1234, and keep it running so ${APP_DISPLAY_NAME} can reach the model service.`
+        : `Install Ollama if needed, then start it so ${APP_DISPLAY_NAME} can reach the local model service.`,
     };
   }
 
   if (models.length === 0) {
     return {
       id: 'model',
-      title: 'Install the recommended model',
-      detail: 'Once Ollama is up, download a supported Gemma 4 model so chat is ready right away.',
+      title: IS_MAC_MODEL_PROVIDER ? 'Load the recommended model' : 'Install the recommended model',
+      detail: IS_MAC_MODEL_PROVIDER
+        ? 'Once LM Studio is serving, load a Gemma 4 model there so chat is ready right away.'
+        : 'Once Ollama is up, download a supported Gemma 4 model so chat is ready right away.',
     };
   }
 
@@ -169,7 +174,7 @@ function buildNextStep({
   return {
     id: 'checking',
     title: 'Refreshing setup state',
-    detail: 'ModernClaw is reconciling the current machine state.',
+    detail: `${APP_DISPLAY_NAME} is reconciling the current machine state.`,
   };
 }
 
@@ -177,8 +182,10 @@ function buildOllamaItem(ollamaStatus: OllamaStatus | null, modelError: string |
   if (!ollamaStatus) {
     return {
       id: 'ollama',
-      label: 'Ollama',
-      detail: 'Checking whether Ollama is available on this machine.',
+      label: MODEL_PROVIDER_NAME,
+      detail: IS_MAC_MODEL_PROVIDER
+        ? 'Checking whether LM Studio is serving on port 1234.'
+        : 'Checking whether Ollama is available on this machine.',
       state: 'checking',
     };
   }
@@ -186,7 +193,7 @@ function buildOllamaItem(ollamaStatus: OllamaStatus | null, modelError: string |
   if (ollamaStatus.running) {
     return {
       id: 'ollama',
-      label: 'Ollama',
+      label: MODEL_PROVIDER_NAME,
       detail: ollamaStatus.version
         ? `Running and ready. Detected version ${ollamaStatus.version}.`
         : 'Running and ready for local model requests.',
@@ -196,10 +203,18 @@ function buildOllamaItem(ollamaStatus: OllamaStatus | null, modelError: string |
 
   return {
     id: 'ollama',
-    label: 'Ollama',
-    detail: 'ModernClaw needs Ollama running locally before chat can work.',
+    label: MODEL_PROVIDER_NAME,
+    detail: IS_MAC_MODEL_PROVIDER
+      ? `${APP_DISPLAY_NAME} needs LM Studio serving on port 1234 before chat can work.`
+      : `${APP_DISPLAY_NAME} needs Ollama running locally before chat can work.`,
     state: 'attention',
-    notes: [ollamaStatus.error ?? modelError ?? 'Install and start Ollama, then refresh setup checks.'],
+    notes: [
+      ollamaStatus.error ??
+        modelError ??
+        (IS_MAC_MODEL_PROVIDER
+          ? 'Open LM Studio, start its local server on port 1234, and refresh setup checks.'
+          : 'Install and start Ollama, then refresh setup checks.'),
+    ],
   };
 }
 
@@ -217,7 +232,9 @@ function buildModelItem(ollamaStatus: OllamaStatus | null, models: Model[], mode
     return {
       id: 'model',
       label: 'Model Installed',
-      detail: 'Start Ollama before checking or downloading local models.',
+      detail: IS_MAC_MODEL_PROVIDER
+        ? 'Start the LM Studio local server before checking which models are loaded there.'
+        : 'Start Ollama before checking or downloading local models.',
       state: 'attention',
     };
   }
@@ -237,9 +254,17 @@ function buildModelItem(ollamaStatus: OllamaStatus | null, models: Model[], mode
   return {
     id: 'model',
     label: 'Model Installed',
-    detail: 'Install at least one supported model before first chat.',
+    detail: IS_MAC_MODEL_PROVIDER
+      ? 'Load at least one Gemma 4 model inside LM Studio before first chat.'
+      : 'Install at least one supported model before first chat.',
     state: 'attention',
-    notes: modelError ? [modelError] : ['Use onboarding or Settings to download a supported Gemma 4 model.'],
+    notes: modelError
+      ? [modelError]
+      : [
+          IS_MAC_MODEL_PROVIDER
+            ? 'Use LM Studio to load a supported Gemma 4 model, then refresh setup.'
+            : 'Use onboarding or Settings to download a supported Gemma 4 model.',
+        ],
   };
 }
 
@@ -276,7 +301,7 @@ function buildMemoryItem(
   return {
     id: 'memory',
     label: 'Workspace Files',
-    detail: 'ModernClaw needs SOUL.md, USER.md, and MEMORY.md in the active workspace.',
+    detail: `${APP_DISPLAY_NAME} needs SOUL.md, USER.md, and MEMORY.md in the active workspace.`,
     state: 'attention',
     notes,
   };

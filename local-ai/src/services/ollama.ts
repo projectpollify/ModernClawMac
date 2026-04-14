@@ -27,6 +27,8 @@ export interface ChatResponse {
   done: boolean;
   total_duration?: number;
   eval_count?: number;
+  prompt_eval_count?: number;
+  finish_reason?: string;
 }
 
 export interface OllamaStatus {

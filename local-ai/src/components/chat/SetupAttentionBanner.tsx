@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
+import { APP_DISPLAY_NAME } from '@/lib/providerConfig';
 import { useViewStore } from '@/stores/uiStore';
 
 export function SetupAttentionBanner() {
@@ -17,7 +18,7 @@ export function SetupAttentionBanner() {
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-            Setup still needs attention before ModernClaw is fully ready.
+            Setup still needs attention before {APP_DISPLAY_NAME} is fully ready.
           </p>
           <p className="mt-1 text-sm text-amber-700/90 dark:text-amber-100/90">
             Required setup: {summary.requiredReady}/{summary.requiredTotal} ready.

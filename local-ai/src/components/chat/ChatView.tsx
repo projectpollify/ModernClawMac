@@ -17,7 +17,7 @@ export function ChatView() {
 
     scrollRef.current.scrollTo({
       top: scrollRef.current.scrollHeight,
-      behavior: 'smooth',
+      behavior: isLoading || Boolean(streamingContent) ? 'auto' : 'smooth',
     });
   }, [messages, isLoading, streamingContent]);
 

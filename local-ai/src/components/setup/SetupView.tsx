@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { SetupStatusPanel } from '@/components/setup/SetupStatusPanel';
+import { APP_DISPLAY_NAME, IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
 import { useViewStore } from '@/stores/uiStore';
 
 export function SetupView() {
@@ -10,10 +11,11 @@ export function SetupView() {
       <div className="mx-auto max-w-5xl space-y-8">
         <section className="rounded-[32px] border border-border bg-background/80 p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Installation Readiness</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Setup</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">{APP_DISPLAY_NAME} Setup</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Use this page as the single source of truth for getting ModernClaw ready on a new machine. It shows what is
-            required before normal chat use, what is optional, and where to go next when something is missing.
+            Use this page as the single source of truth for getting {APP_DISPLAY_NAME} ready on a new machine. It
+            shows what is required before normal chat use, what is optional, and where to go next when something is
+            missing.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -34,7 +36,11 @@ export function SetupView() {
         <section className="grid gap-6 lg:grid-cols-3">
           <InfoCard
             title="What must be ready"
-            body="Ollama needs to be running, at least one local model needs to be installed, and the workspace files need to exist."
+            body={
+              IS_MAC_MODEL_PROVIDER
+                ? `${MODEL_PROVIDER_NAME} needs to be serving on port 1234, at least one Gemma 4 model needs to be loaded there, and the workspace files need to exist.`
+                : 'Ollama needs to be running, at least one local model needs to be installed, and the workspace files need to exist.'
+            }
           />
           <InfoCard
             title="What can wait"

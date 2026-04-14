@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProgressCard';
+import { IS_MAC_MODEL_PROVIDER } from '@/lib/providerConfig';
 import { CURATED_FLOOR_MODELS } from '@/lib/voiceCatalog';
 import { cn } from '@/lib/utils';
 import { useModelStore } from '@/stores/modelStore';
@@ -13,6 +14,26 @@ export function ModelDownloader() {
   const handleDownload = (name: string) => {
     void downloadModel(name);
   };
+
+  if (IS_MAC_MODEL_PROVIDER) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted-foreground">
+          ModernClawMac reads whichever models are currently loaded in LM Studio. Start the LM Studio local server on
+          port 1234, load a Gemma 4 model there, then come back here and refresh.
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {CURATED_FLOOR_MODELS.map((model) => (
+            <div key={model.name} className="rounded-xl border border-border bg-background px-3 py-2 text-left text-sm">
+              <span className="font-medium">{model.name}</span>
+              <span className="ml-2 text-muted-foreground">{model.size}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

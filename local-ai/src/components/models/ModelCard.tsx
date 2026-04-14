@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import { IS_MAC_MODEL_PROVIDER } from '@/lib/providerConfig';
 import { cn } from '@/lib/utils';
 import type { Model } from '@/services/ollama';
 import { useAgentStore } from '@/stores/agentStore';
@@ -61,12 +62,14 @@ export function ModelCard({ model }: ModelCardProps) {
           {showInfo ? 'Hide Info' : 'Info'}
         </button>
 
-        <button
-          onClick={() => void deleteModel(model.name)}
-          className="rounded-md px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-500/10"
-        >
-          Delete
-        </button>
+        {!IS_MAC_MODEL_PROVIDER ? (
+          <button
+            onClick={() => void deleteModel(model.name)}
+            className="rounded-md px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-500/10"
+          >
+            Delete
+          </button>
+        ) : null}
       </div>
 
       {showInfo ? <ModelInfo model={model} /> : null}

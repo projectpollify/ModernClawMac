@@ -2,6 +2,7 @@ import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProg
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useSetupActions } from '@/hooks/useSetupActions';
+import { APP_DISPLAY_NAME, IS_MAC_MODEL_PROVIDER } from '@/lib/providerConfig';
 import { cn } from '@/lib/utils';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
 import type { SetupChecklistItem, SetupNextStep } from '@/lib/setupStatus';
@@ -27,7 +28,7 @@ export function SetupStatusPanel({
   const downloadProgress = useModelStore((state) => state.downloadProgress);
   const setView = useViewStore((state) => state.setView);
   const {
-    openOllamaDownload,
+    openProviderApp,
     startOllama,
     installRecommendedModel,
     initializeWorkspace,
@@ -58,12 +59,14 @@ export function SetupStatusPanel({
     if (step.id === 'ollama') {
       return (
         <>
-          <Button variant="outline" size="sm" onClick={() => void openOllamaDownload()} disabled={isOpeningDownload}>
-            {isOpeningDownload ? 'Opening Download...' : 'Download Ollama'}
+          <Button variant="outline" size="sm" onClick={() => void openProviderApp()} disabled={isOpeningDownload}>
+            {isOpeningDownload ? 'Opening...' : IS_MAC_MODEL_PROVIDER ? 'Open LM Studio' : 'Download Ollama'}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
-            {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
-          </Button>
+          {!IS_MAC_MODEL_PROVIDER ? (
+            <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
+              {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
@@ -76,11 +79,28 @@ export function SetupStatusPanel({
         <>
           {ollamaStatus?.running ? (
             <Button size="sm" onClick={() => void installRecommendedModel()} disabled={isInstallingRecommendedModel || isDownloadingAnyModel}>
-              {isInstallingRecommendedModel || isDownloadingAnyModel ? 'Installing Model...' : 'Install Recommended Model'}
+              {isInstallingRecommendedModel || isDownloadingAnyModel
+                ? IS_MAC_MODEL_PROVIDER
+                  ? 'Checking Models...'
+                  : 'Installing Model...'
+                : IS_MAC_MODEL_PROVIDER
+                  ? 'Confirm Gemma 4 In LM Studio'
+                  : 'Install Recommended Model'}
             </Button>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
-              {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama First'}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void (IS_MAC_MODEL_PROVIDER ? openProviderApp() : startOllama())}
+              disabled={IS_MAC_MODEL_PROVIDER ? isOpeningDownload : isStartingOllama}
+            >
+              {IS_MAC_MODEL_PROVIDER
+                ? isOpeningDownload
+                  ? 'Opening...'
+                  : 'Open LM Studio'
+                : isStartingOllama
+                  ? 'Starting Ollama...'
+                  : 'Start Ollama First'}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
@@ -140,8 +160,8 @@ export function SetupStatusPanel({
       <div className={cn('mt-5 rounded-[24px] border px-4 py-4', summaryTone)}>
         <p className="text-sm font-medium">
           {summary.requiredReady === summary.requiredTotal
-            ? 'ModernClaw is ready for core use.'
-            : 'ModernClaw still needs attention before setup is fully ready.'}
+            ? `${APP_DISPLAY_NAME} is ready for core use.`
+            : `${APP_DISPLAY_NAME} still needs attention before setup is fully ready.`}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           Required setup: {summary.requiredReady}/{summary.requiredTotal} ready. Voice input and output stay optional and can be enabled later when you want them.

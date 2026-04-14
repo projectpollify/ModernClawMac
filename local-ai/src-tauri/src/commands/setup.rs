@@ -37,6 +37,7 @@ pub async fn setup_open_external(target: String) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 #[tauri::command]
 pub async fn setup_start_ollama() -> Result<(), String> {
     #[cfg(target_os = "windows")]
@@ -65,4 +66,22 @@ pub async fn setup_start_ollama() -> Result<(), String> {
         })?;
 
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub async fn setup_start_ollama() -> Result<(), String> {
+    let mut open_app = Command::new("open");
+    open_app.arg("-a").arg("LM Studio");
+
+    if open_app
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .is_ok()
+    {
+        return Ok(());
+    }
+
+    Err("Failed to open LM Studio automatically on macOS. Open /Applications/LM Studio.app, start the local server on port 1234, load a Gemma 4 model, then refresh setup.".to_string())
 }

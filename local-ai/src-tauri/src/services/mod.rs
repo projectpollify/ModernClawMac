@@ -2,6 +2,8 @@ pub mod agent_repo;
 pub mod context;
 pub mod conversation_repo;
 pub mod database;
+pub mod lm_studio;
 pub mod memory;
 pub mod message_repo;
 pub mod ollama;
+pub mod provider;

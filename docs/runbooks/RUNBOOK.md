@@ -4,6 +4,99 @@
 
 This runbook records the bring-up, recovery, and basic verification steps for the ModernClaw base workspace.
 
+Current validated paths:
+
+- Windows: ModernClaw with Ollama
+- macOS: ModernClawMac with LM Studio
+
+## Validated macOS Setup
+
+This is the current known-good setup for Shawn's MacBook on April 14, 2026.
+
+- App runtime: `ModernClawMac`
+- Model runtime: `LM Studio`
+- Local API endpoint: `http://127.0.0.1:1234/v1`
+- Validated chat model: `google/gemma-4-e4b`
+- Offline test status: validated with Wi-Fi turned off after model download
+
+Important current rule:
+
+- Do not rely on Ollama for the Mac path
+- The validated Mac path is LM Studio only
+
+### macOS Daily Bring-Up
+
+1. Open LM Studio.
+2. Start the local server on port `1234`.
+3. Make sure a Gemma 4 model is loaded, currently `google/gemma-4-e4b`.
+4. Start `ModernClawMac` in Tauri dev mode.
+5. Use onboarding or `Setup` to confirm LM Studio is detected and the workspace files are ready.
+6. Open chat once the required setup summary is fully ready.
+
+### macOS Commands
+
+```bash
+cd /Users/shawn/Desktop/ModernClaw/local-ai
+lms server start --port 1234
+curl http://127.0.0.1:1234/v1/models
+npm run tauri:dev
+```
+
+Expected model-list response should include something like:
+
+```json
+{
+  "data": [
+    {
+      "id": "google/gemma-4-e4b"
+    }
+  ]
+}
+```
+
+### macOS Recovery Steps
+
+If the LM Studio server is not up:
+
+```bash
+lms server status
+lms server start --port 1234
+```
+
+If no chat model is available yet:
+
+1. In LM Studio, use the model picker and load a Gemma 4 model.
+2. Re-run:
+
+```bash
+curl http://127.0.0.1:1234/v1/models
+```
+
+If `ModernClawMac` still does not detect LM Studio:
+
+1. Confirm the server is on port `1234`.
+2. Confirm `curl http://127.0.0.1:1234/v1/models` returns JSON.
+3. Restart `npm run tauri:dev`.
+
+### macOS Failure Signals
+
+- `curl http://127.0.0.1:1234/v1/models` cannot connect
+- LM Studio server is not running
+- no Gemma 4 model appears in the `/v1/models` response
+- `ModernClawMac` opens but does not list LM Studio models
+- chat opens but returns a provider connection error
+
+### macOS Notes
+
+- LM Studio is confirmed to work offline after the model is already downloaded.
+- The Mac provider in the app expects the OpenAI-compatible LM Studio API on port `1234`.
+- A root-owned leftover symlink may still exist at `/usr/local/bin/ollama`; this is not part of the working Mac path.
+- If desired, remove that leftover symlink with:
+
+```bash
+sudo rm /usr/local/bin/ollama
+```
+
 ## Daily Bring-Up
 
 1. Make sure Ollama is installed.
@@ -47,6 +140,28 @@ Current scope:
 - voice can be skipped for first install
 - Piper and Whisper still require manual setup on a clean machine
 
+## Fresh Install Flow (macOS)
+
+This is the current intended repo-to-running-app path on a clean Mac running the validated LM Studio setup.
+
+1. Install Node.js.
+2. Install the Rust toolchain with `rustup`.
+3. Install LM Studio from [lmstudio.ai/download](https://lmstudio.ai/download).
+4. Clone the repo.
+5. Run `npm install` in `local-ai`.
+6. Start the LM Studio local server on port `1234`.
+7. Load a Gemma 4 model in LM Studio, currently `google/gemma-4-e4b`.
+8. Verify the local API responds with:
+
+```bash
+curl http://127.0.0.1:1234/v1/models
+```
+
+9. Run `npm run tauri:dev`.
+10. In onboarding or `Setup`, confirm LM Studio is detected.
+11. Confirm the workspace files are initialized.
+12. Open chat once the required setup summary is fully ready.
+
 ## Clean-Machine Validation
 
 Use this exact validation flow when testing install readiness from the repo.
@@ -70,6 +185,22 @@ A tester should be able to clone the repo, follow the docs, and reach normal cha
 11. Confirm `SOUL.md`, `USER.md`, and `MEMORY.md` are created.
 12. Reach the chat screen and send a normal text prompt.
 
+### Validation Steps (macOS)
+
+1. Start from a clean Mac.
+2. Install Node.js and Rust only.
+3. Install LM Studio.
+4. Clone the repo into a fresh folder.
+5. Run `npm install`.
+6. Start the LM Studio local server on port `1234`.
+7. Load a Gemma 4 model in LM Studio.
+8. Verify `curl http://127.0.0.1:1234/v1/models` returns JSON.
+9. Run `npm run tauri:dev`.
+10. Let onboarding guide the machine through setup.
+11. Confirm `SOUL.md`, `USER.md`, and `MEMORY.md` are created.
+12. Reach the chat screen and send a normal text prompt.
+13. Optional verification: disable Wi-Fi and confirm chat still works with the already-downloaded model.
+
 ### Pass Criteria
 
 - the tester does not need extra verbal guidance beyond repo docs
@@ -78,6 +209,13 @@ A tester should be able to clone the repo, follow the docs, and reach normal cha
 - model installation is obvious from onboarding or `Setup`
 - workspace initialization completes without manual file creation
 - chat works after required setup is green
+
+Additional macOS pass criteria:
+
+- LM Studio server startup is obvious and recoverable
+- the model list from `http://127.0.0.1:1234/v1/models` matches what the app sees
+- chat works against LM Studio without Ollama installed
+- offline chat still works after the model is downloaded
 
 ### Failure Signals
 
@@ -213,3 +351,4 @@ The app uses the `LocalAI` app-data root for runtime files, including:
 ## Current Model Stack
 
 - primary tested baseline: `gemma4:e4b`
+- current validated macOS baseline: `google/gemma-4-e4b` through LM Studio

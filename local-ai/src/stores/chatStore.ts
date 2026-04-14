@@ -2,11 +2,13 @@ import { create } from 'zustand';
 import { attachmentApi } from '@/services/attachments';
 import type { AudioNoteDraft, Message } from '@/types';
 import { generateTitleFromMessage } from '@/lib/generateTitle';
-import { contextApi } from '@/services/context';
+import { IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME, MODEL_PROVIDER_STATUS_URL } from '@/lib/providerConfig';
+import { contextApi, type ContextStats } from '@/services/context';
 import { historyApi } from '@/services/history';
 import { ollamaApi, type ChatMessage, type ChatResponse } from '@/services/ollama';
 import { useConversationStore } from '@/stores/conversationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import type { MessageContextStats, MessageMetrics } from '@/types';
 
 interface ChatState {
   messages: Message[];
@@ -16,6 +18,7 @@ interface ChatState {
   currentModel: string | null;
   currentConversationId: string | null;
   streamingContent: string;
+  streamingMetrics: MessageMetrics | null;
   error: string | null;
   sendMessage: (content: string, imageFiles?: File[], audioNotes?: AudioNoteDraft[]) => Promise<void>;
   setMessageFeedback: (messageId: string, feedback?: 'up' | 'down') => Promise<void>;
@@ -32,9 +35,10 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   messagesByConversation: {},
   isLoading: false,
   isStreaming: false,
-  currentModel: 'nchapman/dolphin3.0-qwen2.5:3b',
+  currentModel: IS_MAC_MODEL_PROVIDER ? 'gemma4' : 'gemma4:e4b',
   currentConversationId: null,
   streamingContent: '',
+  streamingMetrics: null,
   error: null,
 
   sendMessage: async (content: string, imageFiles: File[] = [], audioNotes: AudioNoteDraft[] = []) => {
@@ -129,6 +133,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       isStreaming: false,
       currentConversationId: conversationId,
       streamingContent: '',
+      streamingMetrics: null,
       error: null,
     }));
 
@@ -136,6 +141,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     let finalizedAssistantMessage: Message | null = null;
     let fullContent = '';
     let didCompleteStream = false;
+    let responseMetrics: MessageMetrics | null = null;
 
     const isConversationVisible = () => get().currentConversationId === conversationId;
 
@@ -146,7 +152,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
             isLoading: false,
             isStreaming: false,
             streamingContent: '',
-            error: errorMessage ?? 'No response received from Ollama.',
+            streamingMetrics: null,
+            error: errorMessage ?? `No response received from ${MODEL_PROVIDER_NAME}.`,
           });
         }
         return;
@@ -158,6 +165,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         content: fullContent,
         createdAt: new Date(),
         conversationId,
+        tokensUsed: responseMetrics?.outputTokens ?? estimateTokens(fullContent),
+        metrics: responseMetrics ?? undefined,
       };
 
       finalizedAssistantMessage = assistantMessage;
@@ -177,6 +186,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
           nextState.isLoading = false;
           nextState.isStreaming = false;
           nextState.streamingContent = '';
+          nextState.streamingMetrics = null;
           nextState.error = errorMessage;
         }
 
@@ -191,28 +201,38 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       await syncConversationState(nextMessages);
 
       const conversationHistory: ChatMessage[] = messages.map(toChatMessage);
-      const { messages: contextMessages } = await contextApi.buildContext(
+      const { messages: contextMessages, stats } = await contextApi.buildContext(
         conversationHistory,
         toChatMessage(userMessage),
         appSettings.contextWindowSize
       );
+      responseMetrics = {
+        model: currentModel,
+        context: mapContextStats(stats),
+      };
+      if (isConversationVisible()) {
+        set({ streamingMetrics: responseMetrics });
+      }
 
       await ollamaApi.sendMessage(
         currentModel,
         contextMessages,
         conversationId,
         (chunk: ChatResponse) => {
+          responseMetrics = mergeResponseMetrics(responseMetrics, chunk, fullContent);
           if (chunk.message?.content) {
             fullContent += chunk.message.content;
             if (appSettings.streamResponses && isConversationVisible()) {
               set({
                 streamingContent: fullContent,
                 isStreaming: true,
+                streamingMetrics: responseMetrics,
               });
             }
           }
 
           if (chunk.done) {
+            responseMetrics = finalizeResponseMetrics(responseMetrics, fullContent);
             didCompleteStream = true;
             finalizeAssistantMessage();
           }
@@ -246,7 +266,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
           isLoading: false,
           isStreaming: false,
           streamingContent: '',
-          error: String(error),
+          streamingMetrics: null,
+          error: normalizeChatError(error),
         });
       }
     }
@@ -307,6 +328,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       messages: [],
       currentConversationId: conversationId,
       streamingContent: '',
+      streamingMetrics: null,
       error: null,
       isLoading: false,
       isStreaming: false,
@@ -322,6 +344,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         [id]: messages,
       },
       streamingContent: '',
+      streamingMetrics: null,
       error: null,
       isLoading: false,
       isStreaming: false,
@@ -340,6 +363,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
               currentConversationId: null,
               messages: [],
               streamingContent: '',
+              streamingMetrics: null,
               isLoading: false,
               isStreaming: false,
             }
@@ -355,11 +379,42 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       messagesByConversation: {},
       currentConversationId: null,
       streamingContent: '',
+      streamingMetrics: null,
       error: null,
       isLoading: false,
       isStreaming: false,
     }),
 }));
+
+function normalizeChatError(error: unknown): string {
+  const rawError = String(error);
+  const normalized = rawError.toLowerCase();
+
+  if (normalized.includes('model failed to load')) {
+    return (
+      `${MODEL_PROVIDER_NAME} is responding, but its model runner crashed while loading the model. ` +
+      `This points to a ${MODEL_PROVIDER_NAME} runtime problem on this machine rather than ModernClaw request wiring. ` +
+      (IS_MAC_MODEL_PROVIDER
+        ? 'Check the LM Studio logs or app console, then retry after reloading the model there.'
+        : 'Check ~/.ollama/logs/server.log, then update or reinstall Ollama before retrying.')
+    );
+  }
+
+  if (
+    normalized.includes('connection refused') ||
+    normalized.includes("couldn't connect") ||
+    normalized.includes('failed to connect')
+  ) {
+    return (
+      `ModernClaw could not reach ${MODEL_PROVIDER_NAME} on ${MODEL_PROVIDER_STATUS_URL}. ` +
+      (IS_MAC_MODEL_PROVIDER
+        ? 'Start the LM Studio local server on port 1234, load a model there, and refresh the checks.'
+        : 'Start Ollama first, or use the Setup screen to launch it and refresh the checks.')
+    );
+  }
+
+  return rawError;
+}
 
 function toChatMessage(message: Message): ChatMessage {
   return {
@@ -382,4 +437,75 @@ function buildUserMessageContent(content: string, audioNotes: AudioNoteDraft[]):
     .join('\n\n');
 
   return content ? `${content}\n\n${transcriptSections}` : transcriptSections;
+}
+
+function mapContextStats(stats: ContextStats): MessageContextStats {
+  return {
+    systemTokens: stats.system_tokens,
+    historyTokens: stats.history_tokens,
+    totalTokens: stats.total_tokens,
+    maxTokens: stats.max_tokens,
+    messagesIncluded: stats.messages_included,
+    messagesTruncated: stats.messages_truncated,
+    usagePercent: stats.usage_percent,
+  };
+}
+
+function mergeResponseMetrics(
+  current: MessageMetrics | null,
+  chunk: ChatResponse,
+  fullContentBeforeChunk: string
+): MessageMetrics {
+  const merged: MessageMetrics = {
+    ...(current ?? {}),
+    model: chunk.model || current?.model,
+    promptTokens: chunk.prompt_eval_count ?? current?.promptTokens,
+    outputTokens: chunk.eval_count ?? current?.outputTokens,
+    totalDurationMs: normalizeDuration(chunk.total_duration) ?? current?.totalDurationMs,
+    finishReason: chunk.finish_reason ?? current?.finishReason,
+  };
+
+  const completedContent = fullContentBeforeChunk + (chunk.message?.content ?? '');
+
+  if (!merged.outputTokens && completedContent.trim()) {
+    merged.outputTokens = estimateTokens(completedContent);
+  }
+
+  if (merged.outputTokens && merged.totalDurationMs && merged.totalDurationMs > 0) {
+    merged.tokensPerSecond = merged.outputTokens / (merged.totalDurationMs / 1000);
+  }
+
+  return merged;
+}
+
+function finalizeResponseMetrics(current: MessageMetrics | null, content: string): MessageMetrics | null {
+  if (!current && !content.trim()) {
+    return null;
+  }
+
+  const finalized: MessageMetrics = {
+    ...(current ?? {}),
+  };
+
+  if (!finalized.outputTokens && content.trim()) {
+    finalized.outputTokens = estimateTokens(content);
+  }
+
+  if (finalized.outputTokens && finalized.totalDurationMs && finalized.totalDurationMs > 0) {
+    finalized.tokensPerSecond = finalized.outputTokens / (finalized.totalDurationMs / 1000);
+  }
+
+  return finalized;
+}
+
+function normalizeDuration(rawDuration: number | undefined) {
+  if (!rawDuration || rawDuration <= 0) {
+    return undefined;
+  }
+
+  return rawDuration >= 1_000_000 ? rawDuration / 1_000_000 : rawDuration;
+}
+
+function estimateTokens(content: string) {
+  return Math.max(1, Math.ceil(content.length / 4));
 }

@@ -60,6 +60,10 @@ pub struct ChatResponse {
     pub total_duration: Option<u64>,
     #[serde(default)]
     pub eval_count: Option<u32>,
+    #[serde(default)]
+    pub prompt_eval_count: Option<u32>,
+    #[serde(default)]
+    pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

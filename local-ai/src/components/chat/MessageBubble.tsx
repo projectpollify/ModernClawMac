@@ -2,6 +2,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { MessageContent } from './MessageContent';
+import { MessageMetricsRow } from './MessageMetricsRow';
 import type { Message } from '@/types';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -18,6 +19,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const { showTokenCount, enableVoiceOutput } = useSettingsStore((state) => state.settings);
   const { speakMessage, isSpeaking, isPaused, speakingMessageId } = useVoiceStore();
   const tokenCount = estimateTokens(message.content);
+  const messageMetrics =
+    message.metrics ??
+    (message.tokensUsed
+      ? {
+          outputTokens: message.tokensUsed,
+        }
+      : undefined);
   const isActiveMessage = speakingMessageId === message.id;
 
   return (
@@ -75,6 +83,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         ) : null}
         <MessageContent content={message.content} />
+        {isAssistant ? <MessageMetricsRow metrics={messageMetrics} /> : null}
         <div
           className={cn(
             'mt-2 flex items-center gap-2 text-xs opacity-60',

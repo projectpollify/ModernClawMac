@@ -10,15 +10,16 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, isLoading }: MessageListProps) {
-  const { isStreaming, streamingContent } = useChatStore();
+  const { isStreaming, streamingContent, streamingMetrics } = useChatStore();
+  const showStreamingBubble = isStreaming || (isLoading && Boolean(streamingMetrics));
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6">
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
-      {isStreaming && streamingContent && <StreamingBubble content={streamingContent} />}
-      {isLoading && !isStreaming && <TypingIndicator />}
+      {showStreamingBubble ? <StreamingBubble content={streamingContent} metrics={streamingMetrics} /> : null}
+      {isLoading && !showStreamingBubble && <TypingIndicator />}
     </div>
   );
 }

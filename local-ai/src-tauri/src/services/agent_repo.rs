@@ -11,6 +11,9 @@ const MAIN_WORKSPACE_DESCRIPTION: &str =
     "Primary local workspace for chat, memory, knowledge, and settings.";
 const JOE_SUPPORT_DESCRIPTION: &str =
     "Built-in AI support assistant for setup, troubleshooting, and product guidance.";
+#[cfg(target_os = "macos")]
+const DEFAULT_AGENT_MODEL: &str = "gemma4";
+#[cfg(not(target_os = "macos"))]
 const DEFAULT_AGENT_MODEL: &str = "gemma4:e4b";
 const MAIN_WORKSPACE_PIPER_VOICE_PRESET: &str = "amy-medium";
 const JOE_SUPPORT_PIPER_VOICE_PRESET: &str = "joe-medium";

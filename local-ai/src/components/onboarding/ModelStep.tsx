@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProgressCard';
 import { Button } from '@/components/ui/Button';
 import { useSetupActions } from '@/hooks/useSetupActions';
+import {
+  APP_DISPLAY_NAME,
+  IS_MAC_MODEL_PROVIDER,
+  MODEL_PROVIDER_NAME,
+  isRecommendedModelName,
+} from '@/lib/providerConfig';
 import { CURATED_FLOOR_MODELS, DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { cn } from '@/lib/utils';
 import { useModelStore } from '@/stores/modelStore';
@@ -25,6 +31,8 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
     actionNotice,
     clearActionError,
     clearActionNotice,
+    openProviderApp,
+    isOpeningDownload,
   } = useSetupActions();
   const [selectedModel, setSelectedModel] = useState(DEFAULT_FLOOR_MODEL);
 
@@ -34,10 +42,17 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
 
   const hasModels = models.length > 0;
   const installedNames = useMemo(() => new Set(models.map((model) => model.name)), [models]);
+  const recommendedModelReady = useMemo(
+    () =>
+      IS_MAC_MODEL_PROVIDER
+        ? models.some((model) => isRecommendedModelName(model.name))
+        : installedNames.has(DEFAULT_FLOOR_MODEL),
+    [installedNames, models]
+  );
 
   const handleDownload = async () => {
     clearError();
-    if (selectedModel === DEFAULT_FLOOR_MODEL) {
+    if (IS_MAC_MODEL_PROVIDER || selectedModel === DEFAULT_FLOOR_MODEL) {
       await installRecommendedModel();
       return;
     }
@@ -50,8 +65,12 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
   return (
     <StepShell
       eyebrow="Step 2"
-      title="Choose a Model"
-      description="Install a supported Gemma 4 model so ModernClaw starts from a strong default lane, with a lighter sibling available if you want a smaller local footprint."
+      title={IS_MAC_MODEL_PROVIDER ? 'Load a Model' : 'Choose a Model'}
+      description={
+        IS_MAC_MODEL_PROVIDER
+          ? `Start the ${MODEL_PROVIDER_NAME} local server, load a Gemma 4 model there, and ${APP_DISPLAY_NAME} will use that lane as the default Mac workspace engine.`
+          : 'Install a supported Gemma 4 model so ModernClaw starts from a strong default lane, with a lighter sibling available if you want a smaller local footprint.'
+      }
       onBack={onBack}
       onNext={onNext}
       nextDisabled={!hasModels}
@@ -60,7 +79,9 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
     >
       {hasModels ? (
         <div className="rounded-[28px] border border-green-500/25 bg-green-500/10 p-6">
-          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">Installed Models Ready</h3>
+          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">
+            {IS_MAC_MODEL_PROVIDER ? 'Loaded Models Ready' : 'Installed Models Ready'}
+          </h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {models.map((model) => model.name).join(', ')}. The next step is confirming the workspace files.
           </p>
@@ -92,9 +113,9 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
                     {model.recommended ? (
                       <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs text-primary">Recommended</span>
                     ) : null}
-                    {installedNames.has(model.name) ? (
+                    {(IS_MAC_MODEL_PROVIDER ? recommendedModelReady && model.recommended : installedNames.has(model.name)) ? (
                       <span className="rounded-full bg-green-500/12 px-2 py-0.5 text-xs text-green-700 dark:text-green-300">
-                        Installed
+                        {IS_MAC_MODEL_PROVIDER ? 'Loaded' : 'Installed'}
                       </span>
                     ) : null}
                   </div>
@@ -137,20 +158,29 @@ export function ModelStep({ onNext, onBack }: ModelStepProps) {
         </div>
       ) : null}
 
-      {!hasModels && downloadingModel && downloadProgress ? (
+      {!IS_MAC_MODEL_PROVIDER && !hasModels && downloadingModel && downloadProgress ? (
         <ModelDownloadProgressCard progress={downloadProgress} className="mt-5" />
       ) : null}
 
       {!hasModels ? (
-        <div className="mt-6 flex items-center justify-center">
+        <div className="mt-6 flex items-center justify-center gap-3">
+          {IS_MAC_MODEL_PROVIDER ? (
+            <Button variant="outline" onClick={() => void openProviderApp()} disabled={isOpeningDownload}>
+              {isOpeningDownload ? 'Opening LM Studio...' : 'Open LM Studio'}
+            </Button>
+          ) : null}
           <Button onClick={() => void handleDownload()} disabled={Boolean(downloadingModel) || isInstallingRecommendedModel}>
             {isInstallingRecommendedModel
-              ? 'Installing Recommended Model...'
+              ? IS_MAC_MODEL_PROVIDER
+                ? 'Checking LM Studio...'
+                : 'Installing Recommended Model...'
               : downloadingModel
                 ? `Downloading ${downloadingModel}...`
-                : selectedModel === DEFAULT_FLOOR_MODEL
-                  ? `Download ${DEFAULT_FLOOR_MODEL} (Recommended)`
-                  : `Download ${selectedModel}`}
+                : IS_MAC_MODEL_PROVIDER
+                  ? 'Confirm Gemma 4 In LM Studio'
+                  : selectedModel === DEFAULT_FLOOR_MODEL
+                    ? `Download ${DEFAULT_FLOOR_MODEL} (Recommended)`
+                    : `Download ${selectedModel}`}
           </Button>
         </div>
       ) : null}

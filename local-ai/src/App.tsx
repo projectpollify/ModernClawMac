@@ -5,6 +5,7 @@ import { MemoryView } from '@/components/memory/MemoryView';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { SetupView } from '@/components/setup/SetupView';
 import { SettingsView } from '@/components/settings/SettingsView';
+import { resolvePreferredModelName } from '@/lib/providerConfig';
 import { useTheme } from '@/hooks/useTheme';
 import { useEffect } from 'react';
 import { useAgentStore } from '@/stores/agentStore';
@@ -27,6 +28,7 @@ function App() {
   const restoreLatestConversation = useConversationStore((state) => state.restoreLatestConversation);
   const initializeMemory = useMemoryStore((state) => state.initialize);
   const currentModel = useModelStore((state) => state.currentModel);
+  const availableModels = useModelStore((state) => state.models);
   const setCurrentModel = useModelStore((state) => state.setCurrentModel);
   const setChatModel = useChatStore((state) => state.setModel);
   const loadSettings = useSettingsStore((state) => state.loadSettings);
@@ -81,10 +83,16 @@ function App() {
       return;
     }
 
-    setCurrentModel(activeAgentDefaultModel ?? settings.defaultModel ?? null);
+    setCurrentModel(
+      resolvePreferredModelName(
+        activeAgentDefaultModel ?? settings.defaultModel ?? null,
+        availableModels.map((model) => model.name)
+      )
+    );
   }, [
     activeAgentDefaultModel,
     activeAgentId,
+    availableModels,
     hasLoadedAgents,
     hasLoadedSettings,
     setCurrentModel,
@@ -137,4 +145,3 @@ function PlaceholderView({ activeView }: { activeView: string }) {
 }
 
 export default App;
-

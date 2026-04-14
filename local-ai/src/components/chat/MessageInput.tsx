@@ -471,7 +471,7 @@ export function MessageInput() {
                   ? 'Type a message, drop media, or record an audio note...'
                   : 'Type a message or drop media...'
               }
-              disabled={isLoading || isTranscribing || hasPendingAudioTranscription}
+              disabled={isTranscribing || hasPendingAudioTranscription}
               rows={1}
               className={cn(
                 'w-full resize-none rounded-xl border border-border bg-background px-4 py-3 pr-12',

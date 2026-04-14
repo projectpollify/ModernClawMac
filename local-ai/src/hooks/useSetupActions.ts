@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
 import { DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { setupApi } from '@/services/setup';
 import { useMemoryStore } from '@/stores/memoryStore';
@@ -30,15 +31,17 @@ export function useSetupActions() {
     setActionNotice(null);
   };
 
-  const openOllamaDownload = async () => {
+  const openProviderApp = async () => {
     setIsOpeningDownload(true);
     resetFeedback();
 
     try {
-      await setupApi.openOllamaDownload();
+      await setupApi.openProviderApp();
       setActionNotice({
         tone: 'info',
-        message: 'Opened the Ollama download page. Install it there, then come back here and click Start Ollama.',
+        message: IS_MAC_MODEL_PROVIDER
+          ? 'Opened LM Studio. Start the local server on port 1234 there, load a Gemma 4 model, then come back and refresh setup.'
+          : 'Opened the Ollama download page. Install it there, then come back here and click Start Ollama.',
       });
     } catch (error) {
       setActionError(String(error));
@@ -54,6 +57,13 @@ export function useSetupActions() {
     try {
       await setupApi.startOllama();
 
+      if (IS_MAC_MODEL_PROVIDER) {
+        setActionNotice({
+          tone: 'info',
+          message: `Opened ${MODEL_PROVIDER_NAME}. Start the local server on port 1234 there, load a Gemma 4 model, then refresh setup.`,
+        });
+      }
+
       for (let attempt = 0; attempt < 5; attempt += 1) {
         await delay(1200);
         await checkStatus();
@@ -61,13 +71,19 @@ export function useSetupActions() {
         if (useModelStore.getState().ollamaStatus?.running) {
           setActionNotice({
             tone: 'success',
-            message: 'Ollama is responding. The next step is installing the recommended model.',
+            message: IS_MAC_MODEL_PROVIDER
+              ? `${MODEL_PROVIDER_NAME} is responding. The next step is making sure a Gemma 4 model is loaded there.`
+              : 'Ollama is responding. The next step is installing the recommended model.',
           });
           return true;
         }
       }
 
-      setActionError('Tried to start Ollama, but it is not responding yet. If this is a fresh install, open Ollama once and then refresh setup.');
+      setActionError(
+        IS_MAC_MODEL_PROVIDER
+          ? 'LM Studio is not responding yet. Open LM Studio, start the local server on port 1234, load a Gemma 4 model, then refresh setup.'
+          : 'Tried to start Ollama, but it is not responding yet. If this is a fresh install, open Ollama once and then refresh setup.'
+      );
       return false;
     } catch (error) {
       setActionError(String(error));
@@ -82,6 +98,22 @@ export function useSetupActions() {
     resetFeedback();
 
     try {
+      if (IS_MAC_MODEL_PROVIDER) {
+        await loadModels();
+        const { models } = useModelStore.getState();
+
+        if (!models.some((model) => model.name.toLowerCase().includes('gemma4'))) {
+          setActionError('Load a Gemma 4 model inside LM Studio, then refresh setup here.');
+          return false;
+        }
+
+        setActionNotice({
+          tone: 'success',
+          message: 'LM Studio already has a Gemma 4 model loaded. The next step is making sure the workspace files are ready.',
+        });
+        return true;
+      }
+
       await downloadModel(DEFAULT_FLOOR_MODEL);
       await loadModels();
 
@@ -143,7 +175,7 @@ export function useSetupActions() {
   };
 
   return {
-    openOllamaDownload,
+    openProviderApp,
     startOllama,
     installRecommendedModel,
     initializeWorkspace,

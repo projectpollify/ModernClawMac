@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
+import { APP_DISPLAY_NAME } from '@/lib/providerConfig';
 import { useMemoryStore } from '@/stores/memoryStore';
 
 interface MemoryStepProps {
@@ -47,7 +48,7 @@ export function MemoryStep({ onNext, onBack }: MemoryStepProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Step 3</p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight">Initialize Memory</h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-          ModernClaw creates plain Markdown files so you can inspect, edit, and control what the assistant remembers.
+          {APP_DISPLAY_NAME} creates plain Markdown files so you can inspect, edit, and control what the assistant remembers.
         </p>
       </div>
 
@@ -94,4 +95,3 @@ export function MemoryStep({ onNext, onBack }: MemoryStepProps) {
     </div>
   );
 }
-

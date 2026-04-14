@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
 import { cn } from '@/lib/utils';
 import { useAgentStore } from '@/stores/agentStore';
 import { useModelStore } from '@/stores/modelStore';
@@ -45,7 +46,7 @@ export function ModelSelector() {
         onClick={() => void checkStatus()}
         className="rounded-full border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-500/15"
       >
-        Ollama Offline
+        {MODEL_PROVIDER_NAME} Offline
       </button>
     );
   }
@@ -71,7 +72,9 @@ export function ModelSelector() {
               Installed Models
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Choosing a model here saves it as the default for this workspace.
+              {IS_MAC_MODEL_PROVIDER
+                ? 'Choosing a loaded LM Studio model here saves it as the default for this workspace.'
+                : 'Choosing a model here saves it as the default for this workspace.'}
             </p>
           </div>
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useSetupStatus } from '@/hooks/useSetupStatus';
+import { APP_DISPLAY_NAME, IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
 import { useSidebarStore, useViewStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/ScrollArea';
@@ -42,8 +43,10 @@ export function Sidebar() {
           </div>
           {isOpen ? (
             <div>
-              <p className="text-sm font-semibold">ModernClaw</p>
-              <p className="text-xs text-muted-foreground">Private desktop workspace</p>
+              <p className="text-sm font-semibold">{APP_DISPLAY_NAME}</p>
+              <p className="text-xs text-muted-foreground">
+                {IS_MAC_MODEL_PROVIDER ? `${MODEL_PROVIDER_NAME}-powered local workspace` : 'Private desktop workspace'}
+              </p>
             </div>
           ) : null}
         </button>
@@ -253,4 +256,3 @@ function ShieldCheckIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-

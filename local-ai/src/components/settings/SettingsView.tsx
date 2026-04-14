@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { ModelCard } from '@/components/models/ModelCard';
 import { ModelDownloader } from '@/components/models/ModelDownloader';
 import { SetupStatusPanel } from '@/components/setup/SetupStatusPanel';
+import { APP_DISPLAY_NAME, IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
 import { CURATED_FLOOR_MODELS, CURATED_PIPER_VOICES, DEFAULT_FLOOR_MODEL } from '@/lib/voiceCatalog';
 import { getEffectiveVoiceSettings } from '@/lib/voiceSettings';
 import { getDefaultVoicePaths } from '@/lib/voicePaths';
@@ -227,7 +228,7 @@ export function SettingsView() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Configure appearance, model defaults, storage behavior, privacy, and voice for your main ModernClaw workspace. Joe Support stays built in for setup and troubleshooting without exposing full multi-brain management.
+              Configure appearance, model defaults, storage behavior, privacy, and voice for your main {APP_DISPLAY_NAME} workspace. Joe Support stays built in for setup and troubleshooting without exposing full multi-brain management.
             </p>
           </div>
           <Button variant="outline" onClick={() => void refreshModels()}>
@@ -362,7 +363,7 @@ export function SettingsView() {
 
               <SettingRow
                 label="Piper Executable"
-                description="ModernClaw looks here first for the local Piper binary. This stays machine-level by default."
+                description={`${APP_DISPLAY_NAME} looks here first for the local Piper binary. This stays machine-level by default.`}
                 stackOnMobile
               >
                 <input
@@ -400,7 +401,7 @@ export function SettingsView() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => void speakMessage('voice-test', 'ModernClaw voice output is configured and ready to test.')}
+                    onClick={() => void speakMessage('voice-test', `${APP_DISPLAY_NAME} voice output is configured and ready to test.`)}
                     disabled={!effectiveVoiceSettings.enableVoiceOutput || isSpeakingVoice}
                   >
                     {isSpeakingVoice ? 'Speaking...' : 'Test Voice'}
@@ -435,7 +436,7 @@ export function SettingsView() {
 
               <SettingRow
                 label="Whisper Executable"
-                description="ModernClaw looks here first for whisper-cli.exe. This stays machine-level by default."
+                description={`${APP_DISPLAY_NAME} looks here first for whisper-cli.exe. This stays machine-level by default.`}
                 stackOnMobile
               >
                 <input
@@ -567,13 +568,15 @@ export function SettingsView() {
 
               {!ollamaStatus?.running ? (
                 <div className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700">
-                  Ollama is not running. Start it to manage installed models.
+                  {IS_MAC_MODEL_PROVIDER
+                    ? `${MODEL_PROVIDER_NAME} is not serving on port 1234. Start its local server and load a model there to manage active models.`
+                    : 'Ollama is not running. Start it to manage installed models.'}
                 </div>
               ) : null}
 
               <div className="mt-5 rounded-2xl border border-border bg-background/80 p-4">
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Download
+                  {IS_MAC_MODEL_PROVIDER ? 'Load In LM Studio' : 'Download'}
                 </h3>
                 <ModelDownloader />
               </div>
@@ -583,7 +586,7 @@ export function SettingsView() {
                   models.map((model) => <ModelCard key={model.name} model={model} />)
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border bg-background/70 p-5 text-sm text-muted-foreground">
-                    No models installed yet.
+                    {IS_MAC_MODEL_PROVIDER ? 'No models are currently loaded in LM Studio.' : 'No models installed yet.'}
                   </div>
                 )}
               </div>
