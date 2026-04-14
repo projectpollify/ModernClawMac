@@ -73,6 +73,7 @@ impl LMStudioService {
         Ok(payload
             .data
             .into_iter()
+            .filter(|model| is_chat_model(&model.id))
             .map(|model| {
                 let normalized_name = model.id.clone();
                 let lower = normalized_name.to_lowercase();
@@ -291,6 +292,10 @@ fn prepare_message(message: ChatMessage) -> Result<LMStudioChatMessage, String> 
 }
 
 fn infer_family(lower_name: &str) -> Option<String> {
+    if lower_name.contains("embed") || lower_name.contains("embedding") {
+        return Some("embedding".to_string());
+    }
+
     if lower_name.contains("gemma4") || lower_name.contains("gemma-4") {
         return Some("gemma4".to_string());
     }
@@ -308,6 +313,11 @@ fn infer_family(lower_name: &str) -> Option<String> {
     }
 
     None
+}
+
+fn is_chat_model(model_name: &str) -> bool {
+    let lower = model_name.to_lowercase();
+    !(lower.contains("embed") || lower.contains("embedding"))
 }
 
 fn infer_mime_type(path: &str) -> &'static str {

@@ -78,6 +78,10 @@ export function ModelCard({ model }: ModelCardProps) {
 }
 
 function formatSize(bytes: number): string {
+  if (!bytes || bytes <= 0) {
+    return 'Loaded in LM Studio';
+  }
+
   const gb = bytes / (1024 * 1024 * 1024);
   if (gb >= 1) {
     return `${gb.toFixed(1)}GB`;
