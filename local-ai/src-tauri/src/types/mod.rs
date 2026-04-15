@@ -128,6 +128,7 @@ pub struct Message {
     pub attachments: Vec<MessageAttachment>,
     pub tokens_used: Option<i32>,
     pub feedback: Option<String>,
+    pub feedback_note: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 

@@ -39,6 +39,7 @@ export interface Message {
   tokensUsed?: number;
   metrics?: MessageMetrics;
   feedback?: 'up' | 'down';
+  feedbackNote?: string;
 }
 
 export interface MessageContextStats {

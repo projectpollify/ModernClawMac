@@ -22,7 +22,7 @@ interface ChatState {
   streamingMetrics: MessageMetrics | null;
   error: string | null;
   sendMessage: (content: string, imageFiles?: File[], audioNotes?: AudioNoteDraft[]) => Promise<void>;
-  setMessageFeedback: (messageId: string, feedback?: 'up' | 'down') => Promise<void>;
+  setMessageFeedback: (messageId: string, feedback?: 'up' | 'down', feedbackNote?: string) => Promise<void>;
   setModel: (model: string) => void;
   newConversation: (conversationId: string) => void;
   loadConversation: (id: string, messages?: Message[]) => void;
@@ -274,9 +274,17 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  setMessageFeedback: async (messageId: string, feedback) => {
+  setMessageFeedback: async (messageId: string, feedback, feedbackNote) => {
     const updateMessages = (items: Message[]) =>
-      items.map((message) => (message.id === messageId ? { ...message, feedback } : message));
+      items.map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              feedback,
+              feedbackNote: feedback === 'down' ? feedbackNote ?? message.feedbackNote : undefined,
+            }
+          : message
+      );
 
     const { currentConversationId } = get();
     const conversationId = Object.entries(get().messagesByConversation).find(([, items]) =>
@@ -303,7 +311,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }));
 
     try {
-      await historyApi.setMessageFeedback(messageId, feedback);
+      await historyApi.setMessageFeedback(messageId, feedback, feedback === 'down' ? feedbackNote : undefined);
     } catch (error) {
       set((state) => ({
         messagesByConversation: {
