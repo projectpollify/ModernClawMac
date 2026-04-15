@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest an improvement to the product, repo, or developer experience.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What pain point are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the change you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other options did you consider?
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Expected impact
+      options:
+        - Nice to have
+        - Useful improvement
+        - Important for release quality
+        - Critical blocker
+    validations:
+      required: true
