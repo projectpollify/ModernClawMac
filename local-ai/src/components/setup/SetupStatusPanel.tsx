@@ -62,11 +62,9 @@ export function SetupStatusPanel({
           <Button variant="outline" size="sm" onClick={() => void openProviderApp()} disabled={isOpeningDownload}>
             {isOpeningDownload ? 'Opening...' : IS_MAC_MODEL_PROVIDER ? 'Open Engine Guide' : 'Download Ollama'}
           </Button>
-          {!IS_MAC_MODEL_PROVIDER ? (
-            <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
-              {isStartingOllama ? 'Starting Ollama...' : 'Start Ollama'}
-            </Button>
-          ) : null}
+          <Button variant="outline" size="sm" onClick={() => void startOllama()} disabled={isStartingOllama}>
+            {isStartingOllama ? (IS_MAC_MODEL_PROVIDER ? 'Starting Engine...' : 'Starting Ollama...') : IS_MAC_MODEL_PROVIDER ? 'Start Engine' : 'Start Ollama'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => void runRefresh()} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
@@ -91,13 +89,13 @@ export function SetupStatusPanel({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => void (IS_MAC_MODEL_PROVIDER ? openProviderApp() : startOllama())}
-              disabled={IS_MAC_MODEL_PROVIDER ? isOpeningDownload : isStartingOllama}
+              onClick={() => void startOllama()}
+              disabled={isStartingOllama}
             >
               {IS_MAC_MODEL_PROVIDER
-                ? isOpeningDownload
-                  ? 'Opening...'
-                  : 'Open Engine Guide'
+                ? isStartingOllama
+                  ? 'Starting Engine...'
+                  : 'Start Engine First'
                 : isStartingOllama
                   ? 'Starting Ollama...'
                   : 'Start Ollama First'}

@@ -60,7 +60,7 @@ export function useSetupActions() {
       if (IS_MAC_MODEL_PROVIDER) {
         setActionNotice({
           tone: 'info',
-          message: `Start ${MODEL_PROVIDER_NAME} by running a local llama.cpp server on port 8080, then make sure either ${DEFAULT_FLOOR_MODEL} or ${LIGHTWEIGHT_FLOOR_MODEL} is available there before refreshing setup.`,
+          message: `Starting ${MODEL_PROVIDER_NAME} with the saved llama.cpp executable and GGUF model path.`,
         });
       }
 

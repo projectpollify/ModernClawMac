@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ModelDownloadProgressCard } from '@/components/models/ModelDownloadProgressCard';
-import { IS_MAC_MODEL_PROVIDER } from '@/lib/providerConfig';
+import { getModelDisplayName, IS_MAC_MODEL_PROVIDER } from '@/lib/providerConfig';
 import { CURATED_FLOOR_MODELS } from '@/lib/voiceCatalog';
 import { cn } from '@/lib/utils';
 import { useModelStore } from '@/stores/modelStore';
@@ -19,14 +19,14 @@ export function ModelDownloader() {
     return (
       <div className="space-y-4">
         <div className="rounded-2xl border border-border bg-background/70 p-4 text-sm text-muted-foreground">
-          ModernClawMac reads whichever models are currently loaded in LM Studio. Start the LM Studio local server on
-          port 1234, then load one of the standard Gemma 4 lanes below and come back here to refresh.
+          ModernClawMac reads whichever Gemma 4 GGUF models are available to the local direct engine. Start
+          `llama-server` on port 8080, then make one of the standard lanes below available and come back here to refresh.
         </div>
 
         <div className="flex flex-wrap gap-2">
           {CURATED_FLOOR_MODELS.map((model) => (
             <div key={model.name} className="rounded-xl border border-border bg-background px-3 py-2 text-left text-sm">
-              <div className="font-medium">{model.name}</div>
+              <div className="font-medium">{getModelDisplayName(model.name)}</div>
               <div className="mt-1 text-xs text-muted-foreground">{model.description}</div>
             </div>
           ))}
@@ -54,7 +54,7 @@ export function ModelDownloader() {
             )}
             title={model.description}
           >
-            <span className="font-medium">{model.name}</span>
+            <span className="font-medium">{getModelDisplayName(model.name)}</span>
             <span className="ml-2 text-muted-foreground">{model.size}</span>
           </button>
         ))}
