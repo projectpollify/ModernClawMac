@@ -23,7 +23,7 @@ use commands::memory::{
     memory_load_context, memory_open_folder, memory_read_file, memory_reject_curator_package,
     memory_store_chat_attachment, memory_write_file, MemoryState,
 };
-use commands::setup::{setup_open_external, setup_start_ollama};
+use commands::setup::{setup_open_external, setup_start_ollama, setup_switch_direct_engine_model};
 use commands::settings::{setting_get, setting_set, settings_get_all, settings_reset};
 use commands::voice::{voice_check_input_status, voice_check_status, voice_speak, voice_transcribe};
 use services::agent_repo::AgentRepository;
@@ -139,6 +139,7 @@ pub fn run() {
             memory_store_chat_attachment,
             setup_open_external,
             setup_start_ollama,
+            setup_switch_direct_engine_model,
             settings_get_all,
             setting_set,
             setting_get,
