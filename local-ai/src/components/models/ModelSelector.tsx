@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getModelDisplayName, IS_MAC_MODEL_PROVIDER, MODEL_PROVIDER_NAME } from '@/lib/providerConfig';
+import { CURATED_FLOOR_MODELS } from '@/lib/voiceCatalog';
 import { setupApi } from '@/services/setup';
 import { cn } from '@/lib/utils';
 import { useAgentStore } from '@/stores/agentStore';
@@ -18,6 +19,32 @@ export function ModelSelector() {
   const [isSwitchingModel, setIsSwitchingModel] = useState(false);
   const [pendingModelName, setPendingModelName] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
+  const availableModels = useMemo(() => {
+    if (!IS_MAC_MODEL_PROVIDER) {
+      return models;
+    }
+
+    const modelMap = new Map(models.map((model) => [model.name, model]));
+
+    for (const curated of CURATED_FLOOR_MODELS) {
+      if (!modelMap.has(curated.name)) {
+        modelMap.set(curated.name, {
+          name: curated.name,
+          modified_at: '',
+          size: 0,
+          digest: '',
+          details: {
+            family: 'gemma4',
+            parameter_size: curated.size,
+            quantization_level: 'Local lane',
+          },
+        });
+      }
+    }
+
+    return Array.from(modelMap.values());
+  }, [models]);
 
   useEffect(() => {
     void checkStatus();
@@ -103,11 +130,11 @@ export function ModelSelector() {
         <div className="absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
           <div className="border-b border-border px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Installed Models
+              {IS_MAC_MODEL_PROVIDER ? 'Available Lanes' : 'Installed Models'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {IS_MAC_MODEL_PROVIDER
-                ? 'Choosing a loaded model here saves it as the default for this workspace.'
+                ? 'Choose between the supported Gemma 4 lanes here. If the target GGUF exists locally, ModernClawMac will restart the engine into that lane.'
                 : 'Choosing a model here saves it as the default for this workspace.'}
             </p>
             {isSwitchingModel && pendingModelName ? (
@@ -118,8 +145,11 @@ export function ModelSelector() {
           </div>
 
           <div className="max-h-72 overflow-y-auto py-1">
-            {models.length > 0 ? (
-              models.map((model) => (
+            {availableModels.length > 0 ? (
+              availableModels.map((model) => {
+                const isLoaded = models.some((loadedModel) => loadedModel.name === model.name);
+
+                return (
                 <button
                   key={model.name}
                   onClick={() => void handleSelectModel(model.name)}
@@ -136,11 +166,14 @@ export function ModelSelector() {
                       <SpinnerIcon className="h-3 w-3" />
                       Switching
                     </span>
+                  ) : IS_MAC_MODEL_PROVIDER && isLoaded ? (
+                    <span className="text-xs text-muted-foreground">Loaded</span>
                   ) : (
                     <span className="text-xs text-muted-foreground">{formatSize(model.size)}</span>
                   )}
                 </button>
-              ))
+                );
+              })
             ) : (
               <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                 No models installed

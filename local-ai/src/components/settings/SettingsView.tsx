@@ -19,7 +19,7 @@ import { historyApi } from '@/services/history';
 import { memoryApi } from '@/services/memory';
 import type { AgentVoiceSettings, MessageFeedbackSummary, Theme } from '@/types';
 
-const CONTEXT_WINDOW_OPTIONS = [2048, 4096, 8192, 16384, 32768];
+const CONTEXT_WINDOW_OPTIONS = [2048, 4096, 8192, 16384, 32768, 65536, 131072];
 const WHISPER_LANGUAGE_OPTIONS = [
   { value: 'auto', label: 'Auto detect' },
   { value: 'en', label: 'English' },
@@ -285,7 +285,7 @@ export function SettingsView() {
 
               <SettingRow
                 label="Context Window"
-                description="Controls how much memory and history are packed into each prompt. Gemma 4 stays happiest when this remains moderate unless you are intentionally testing longer contexts."
+                description="Controls how much memory and history are packed into each prompt. Gemma 4 E4B can handle much longer contexts, including 128k, but higher settings use more memory and are best enabled intentionally."
               >
                 <select
                   value={settings.contextWindowSize}
